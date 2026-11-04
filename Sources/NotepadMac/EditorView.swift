@@ -64,7 +64,7 @@ final class EditorTab {
     var highlightWork: DispatchWorkItem?
     var dirty: Bool { textView.string != snapshot.savedText || snapshot.encoding != savedEncoding || snapshot.lineEnding != savedEnding }
     var url: URL? { snapshot.path.map { URL(fileURLWithPath: $0) } }
-    var language: String { Syntax.language(for: url?.pathExtension ?? "") }
+    var language: String { snapshot.syntaxLanguage ?? Syntax.language(for: url?.pathExtension ?? "") }
 
     init(_ snapshot: SessionTab, fontSize: CGFloat, wrap: Bool) {
         self.snapshot = snapshot; savedEncoding = snapshot.encoding; savedEnding = snapshot.lineEnding
@@ -124,7 +124,9 @@ enum Syntax {
     static let keywordColor = color("SyntaxKeyword", light: (0.44, 0.18, 0.65), dark: (0.82, 0.64, 0.95))
     static let stringColor = color("SyntaxString", light: (0.13, 0.44, 0.23), dark: (0.55, 0.84, 0.63))
     static let markupColor = color("SyntaxMarkup", light: (0.14, 0.35, 0.65), dark: (0.54, 0.71, 0.97))
+    static let languages = ["Обычный текст", "SQL", "Kafka / ksqlDB", "Swift", "JavaScript", "TypeScript", "Python", "JSON", "HTML / XML", "CSS", "C / C++", "Markdown", "Shell", "YAML"]
     static func language(for ext: String) -> String {
+        if let queryLanguage = QuerySyntax.language(forExtension: ext) { return queryLanguage }
         switch ext.lowercased() {
         case "swift": return "Swift"
         case "js", "jsx", "mjs", "cjs": return "JavaScript"
@@ -149,6 +151,20 @@ enum Syntax {
         defer { storage.endEditing() }
         // Keep very large documents responsive; basic editing still works.
         guard full.length < 500_000, language != "Обычный текст" else { return }
+        if language == "SQL" || language == "Kafka / ksqlDB" {
+            for token in QuerySyntax.tokens(in: text, kafkaMode: language == "Kafka / ksqlDB") {
+                let color: NSColor
+                switch token.kind {
+                case .keyword: color = keywordColor
+                case .string: color = stringColor
+                case .identifier, .function: color = markupColor
+                case .number, .parameter: color = numberColor
+                case .comment: color = .secondaryLabelColor
+                }
+                storage.addAttribute(.foregroundColor, value: color, range: token.range)
+            }
+            return
+        }
         var rules: [(String, NSColor)] = [
             (#"\b\d+(?:\.\d+)?\b"#, numberColor),
             (#"\b(?:let|var|const|func|function|class|struct|enum|protocol|extension|import|from|return|if|else|for|while|in|do|try|catch|throw|throws|async|await|public|private|static|final|override|guard|switch|case|break|continue|def|lambda|with|as|pass|yield|None|True|False|true|false|null|nil|new|this|self|typeof|interface|export|default|type|void|int|float|double|char|bool|include)\b"#, keywordColor),

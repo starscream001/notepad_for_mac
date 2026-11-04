@@ -93,3 +93,24 @@ jobs:
             gh release create latest --target "$GITHUB_SHA" --title "Notepad Mac — скачать для macOS" --notes-file release-notes.md --prerelease
           fi
           gh release upload latest dist/Notepad-Mac-universal.zip dist/Notepad-Mac-universal.zip.sha256 --clobber
+
+      - name: Publish numbered version with release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$HEAD_SHA" != "$GITHUB_SHA" ]]; then exit 0; fi
+          archives=(dist/Notepad-Mac-*-universal.zip)
+          VERSION="${archives[0]##*/}"
+          VERSION="${VERSION#Notepad-Mac-}"
+          VERSION="${VERSION%-universal.zip}"
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG is already published; keeping its original files."
+            exit 0
+          fi
+          gh api "repos/$GH_REPO/contents/RELEASE_NOTES.md?ref=$GITHUB_SHA" --jq '.content' | base64 --decode > version-notes.md
+          gh release create "$TAG" "${archives[0]}" "${archives[0]}.sha256" --target "$GITHUB_SHA" --title "Notepad Mac $VERSION" --notes-file version-notes.md --latest

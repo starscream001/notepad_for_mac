@@ -90,6 +90,7 @@ public struct SessionTab: Codable {
     public var encoding: TextEncoding
     public var lineEnding: LineEnding
     public var selection: Int
+    public var syntaxLanguage: String?
     public var savedEncoding: TextEncoding?
     public var savedLineEnding: LineEnding?
     public var diskModified: Date?

@@ -1,0 +1,20 @@
+-- Kafka / ksqlDB: описание потока и оконный запрос
+CREATE STREAM orders (
+    order_id STRING KEY,
+    customer_id STRING,
+    amount DOUBLE
+) WITH (
+    KAFKA_TOPIC = 'orders',
+    VALUE_FORMAT = 'JSON',
+    PARTITIONS = 3
+);
+
+CREATE TABLE order_totals AS
+SELECT
+    customer_id,
+    COUNT(*) AS order_count,
+    SUM(amount) AS total_amount
+FROM orders
+WINDOW TUMBLING (SIZE 5 MINUTES)
+GROUP BY customer_id
+EMIT CHANGES;

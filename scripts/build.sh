@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.2.0}"
 UNIVERSAL="${UNIVERSAL:-0}"
 if [[ "$UNIVERSAL" == "1" ]]; then
   swift build -c release --triple arm64-apple-macosx13.0 --product NotepadMac

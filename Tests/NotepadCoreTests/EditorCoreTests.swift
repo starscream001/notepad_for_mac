@@ -48,6 +48,52 @@ final class EditorCoreTests {
         let permissions = try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? NSNumber
         XCTAssertEqual(permissions?.intValue, 0o600)
     }
+    func testQueryLanguageDetection() {
+        for ext in ["sql", "SQL", "psql", "pgsql", "mysql", "ddl", "dml"] { XCTAssertEqual(QuerySyntax.language(forExtension: ext), "SQL") }
+        for ext in ["ksql", "KSQLDB"] { XCTAssertEqual(QuerySyntax.language(forExtension: ext), "Kafka / ksqlDB") }
+        XCTAssertEqual(QuerySyntax.language(forExtension: "txt"), nil)
+    }
+    func testSQLTokensKeepStringsIdentifiersAndCommentsSeparate() {
+        let text = "SELECT 'it''s -- text', \"FROM\", :user_id, $1, 1.5e2 -- SELECT\nFROM events /* WHERE */".replacingOccurrences(of: "\\n", with: "\n")
+        let ns = text as NSString
+        let tokens = QuerySyntax.tokens(in: text, kafkaMode: false)
+        XCTAssertEqual(tokens.filter { $0.kind == .keyword }.map { ns.substring(with: $0.range) }, ["SELECT", "FROM"])
+        XCTAssertEqual(tokens.filter { $0.kind == .string }.map { ns.substring(with: $0.range) }, ["'it''s -- text'"])
+        XCTAssertEqual(tokens.filter { $0.kind == .identifier }.map { ns.substring(with: $0.range) }, ["\"FROM\""])
+        XCTAssertEqual(tokens.filter { $0.kind == .comment }.count, 2)
+        XCTAssertEqual(tokens.filter { $0.kind == .parameter }.count, 2)
+        XCTAssertEqual(tokens.filter { $0.kind == .number }.map { ns.substring(with: $0.range) }, ["1.5e2"])
+        for pair in zip(tokens, tokens.dropFirst()) { XCTAssertEqual(NSMaxRange(pair.0.range) <= pair.1.range.location, true) }
+    }
+    func testKafkaKeywordsAndFunctions() {
+        let text = "create stream totals as select count(*) from orders window tumbling (size 5 minutes) emit changes;"
+        let ns = text as NSString
+        let tokens = QuerySyntax.tokens(in: text, kafkaMode: true)
+        let keywords = tokens.filter { $0.kind == .keyword }.map { ns.substring(with: $0.range).uppercased() }
+        for keyword in ["CREATE", "STREAM", "WINDOW", "TUMBLING", "SIZE", "MINUTES", "EMIT", "CHANGES"] { XCTAssertEqual(keywords.contains(keyword), true) }
+        XCTAssertEqual(tokens.filter { $0.kind == .function }.map { ns.substring(with: $0.range) }, ["count"])
+        XCTAssertEqual(QuerySyntax.tokens(in: "EMIT CHANGES", kafkaMode: false).count, 0)
+    }
+    func testDollarQuotesAndUnicodeQuery() {
+        let text = "SELECT $$-- not comment$$, $body$SELECT 42$body$, 'Привет 👋', x👋, `a``b`, [odd]]name];"
+        let ns = text as NSString
+        let tokens = QuerySyntax.tokens(in: text, kafkaMode: false)
+        XCTAssertEqual(tokens.filter { $0.kind == .string }.map { ns.substring(with: $0.range) }, ["$$-- not comment$$", "$body$SELECT 42$body$", "'Привет 👋'"])
+        XCTAssertEqual(tokens.filter { $0.kind == .comment }.count, 0)
+        XCTAssertEqual(tokens.filter { $0.kind == .identifier }.count, 2)
+        XCTAssertEqual(QuerySyntax.tokens(in: "SELECT 'unfinished", kafkaMode: false).last?.kind, .string)
+    }
+    func testSessionRemembersLanguageAndReadsOlderSessions() throws {
+        var tab = SessionTab(text: "SELECT 1;")
+        tab.syntaxLanguage = "SQL"
+        let data = try JSONEncoder().encode(Session(tabs: [tab], selected: tab.id))
+        XCTAssertEqual(try JSONDecoder().decode(Session.self, from: data).tabs.first?.syntaxLanguage, "SQL")
+        var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        var tabs = object["tabs"] as! [[String: Any]]
+        tabs[0].removeValue(forKey: "syntaxLanguage"); object["tabs"] = tabs
+        let old = try JSONSerialization.data(withJSONObject: object)
+        XCTAssertEqual(try JSONDecoder().decode(Session.self, from: old).tabs.first?.syntaxLanguage, nil)
+    }
     func testUTF16LineNavigation() {
         let text = "👋x\nПривет\n"
         let position = TextPosition.lineColumn(in: text, utf16Offset: 4)
@@ -74,7 +120,12 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         try tests.testInvalidAndEmptyRegex()
         try tests.testSessionRetainsUnsavedTextAndSelectedTab()
         tests.testUTF16LineNavigation()
+        tests.testQueryLanguageDetection()
+        tests.testSQLTokensKeepStringsIdentifiersAndCommentsSeparate()
+        tests.testKafkaKeywordsAndFunctions()
+        tests.testDollarQuotesAndUnicodeQuery()
+        try tests.testSessionRemembersLanguageAndReadsOlderSessions()
         guard CheckState.failures == 0 else { exit(1) }
-        print("7 checks passed (including all 12 encoding / line-ending combinations).")
+        print("12 checks passed (including all 12 encoding / line-ending combinations).")
     }
 }

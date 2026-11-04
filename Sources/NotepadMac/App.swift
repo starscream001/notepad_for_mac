@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     let caseButton = NSButton(checkboxWithTitle: "Регистр", target: nil, action: nil)
     let regexButton = NSButton(checkboxWithTitle: ".* Regex", target: nil, action: nil)
     let findStatus = NSTextField(labelWithString: "")
+    let languagePopup = NSPopUpButton()
     let encodingPopup = NSPopUpButton()
     let endingPopup = NSPopUpButton()
     let themePopup = NSPopUpButton()
@@ -147,6 +148,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
         status.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        languagePopup.addItems(withTitles: ["Авто"] + Syntax.languages)
+        languagePopup.target = self; languagePopup.action = #selector(changeLanguage(_:))
+        languagePopup.setAccessibilityLabel("Язык подсветки")
+        languagePopup.toolTip = "Язык подсветки: Авто — по расширению файла"
         encodingPopup.addItems(withTitles: TextEncoding.allCases.map(\.rawValue))
         encodingPopup.target = self; encodingPopup.action = #selector(changeEncoding(_:)); encodingPopup.setAccessibilityLabel("Кодировка файла")
         endingPopup.addItems(withTitles: LineEnding.allCases.map(\.rawValue))
@@ -154,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         themePopup.addItems(withTitles: ["Системная", "Светлая", "Тёмная"])
         themePopup.selectItem(at: UserDefaults.standard.integer(forKey: "theme"))
         themePopup.target = self; themePopup.action = #selector(changeTheme(_:)); themePopup.setAccessibilityLabel("Тема оформления")
-        let statusRow = row([status, NSView(), endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
+        let statusRow = row([status, NSView(), NSTextField(labelWithString: "Язык:"), languagePopup, endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
         for child in root.arrangedSubviews {
             child.translatesAutoresizingMaskIntoConstraints = false
             child.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
@@ -305,8 +310,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         status.stringValue = "Стр \(position.line), стлб \(position.column)   ·   \(tab.language)   ·   \(tab.textView.string.count) симв."
         pathLabel.stringValue = tab.url?.path ?? "Новый документ · восстанавливается при следующем запуске"
         pathLabel.toolTip = pathLabel.stringValue
+        languagePopup.selectItem(withTitle: tab.snapshot.syntaxLanguage ?? "Авто")
         encodingPopup.selectItem(withTitle: tab.snapshot.encoding.rawValue)
         endingPopup.selectItem(withTitle: tab.snapshot.lineEnding.rawValue)
+    }
+    @objc func changeLanguage(_ sender: Any?) {
+        guard let tab = current, let language = languagePopup.titleOfSelectedItem else { return }
+        tab.snapshot.syntaxLanguage = language == "Авто" ? nil : language
+        tab.highlight(); updateStatus(); schedulePersistence()
     }
     @objc func changeEncoding(_ sender: Any?) {
         guard let tab = current, let title = encodingPopup.titleOfSelectedItem, let encoding = TextEncoding(rawValue: title) else { return }
@@ -393,7 +404,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
     }
     @objc func about() {
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: "0.1.0", .credits: NSAttributedString(string: "Нативный текстовый редактор для macOS.\nНезависимый проект, вдохновлённый Notepad++.")])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: "0.2.0", .credits: NSAttributedString(string: "Нативный текстовый редактор для macOS.\nНезависимый проект, вдохновлённый Notepad++.")])
     }
     func showError(_ error: Error) { let alert = NSAlert(error: error); alert.runModal() }
     func schedulePersistence() {
