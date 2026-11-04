@@ -9,6 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     var current: EditorTab? { tabs.first { $0.snapshot.id == selectedID } }
     let tabStack = NSStackView()
     let editorHost = NSView()
+    let splitController = NSSplitViewController()
+    var editorSplit: NSSplitView { splitController.splitView }
+    var previewItem: NSSplitViewItem!
+    let previewPane = PreviewPane()
+    var previewEnabled = false
+    var previewButton: NSButton!
     let status = NSTextField(labelWithString: "")
     let pathLabel = NSTextField(labelWithString: "")
     let findStack = NSStackView()
@@ -96,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         item(search, "Найти предыдущее", #selector(findPrevious(_:)), "g", [.command, .shift])
         item(search, "Перейти к строке…", #selector(goToLine(_:)), "l")
         let view = submenu("Вид")
+        item(view, "Предпросмотр Markdown / HTML", #selector(togglePreview(_:)), "p", [.command, .option])
         item(view, "Перенос строк", #selector(toggleWrap(_:)), "w", [.command, .option])
         item(view, "Увеличить шрифт", #selector(zoomIn(_:)), "=")
         item(view, "Уменьшить шрифт", #selector(zoomOut(_:)), "-")
@@ -128,7 +135,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         window.contentView = root
         pathLabel.lineBreakMode = .byTruncatingMiddle; pathLabel.textColor = .secondaryLabelColor
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let toolbar = row([button("Новый", #selector(newDocument(_:)), symbol: "plus"), button("Открыть", #selector(openDocument(_:)), symbol: "folder"), button("Сохранить", #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button("Поиск", #selector(showFind(_:)), symbol: "magnifyingglass")])
+        previewButton = button("Просмотр", #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
+        previewButton.setButtonType(.pushOnPushOff)
+        let toolbar = row([button("Новый", #selector(newDocument(_:)), symbol: "plus"), button("Открыть", #selector(openDocument(_:)), symbol: "folder"), button("Сохранить", #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), previewButton, button("Поиск", #selector(showFind(_:)), symbol: "magnifyingglass")])
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -149,7 +158,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         findStack.addArrangedSubview(row([searchField, caseButton, regexButton, button("Назад", #selector(findPrevious(_:))), button("Далее", #selector(findNext(_:))), button("Закрыть", #selector(hideFind(_:)))]))
         findStack.addArrangedSubview(row([replaceField, button("Заменить", #selector(replaceOne(_:))), button("Заменить всё", #selector(replaceAll(_:))), findStatus]))
         findStack.isHidden = true; root.addArrangedSubview(findStack)
-        root.addArrangedSubview(editorHost)
+        _ = splitController.view
+        editorSplit.isVertical = true; editorSplit.dividerStyle = .thin
+        let editController = NSViewController(); editController.view = editorHost
+        let previewController = NSViewController(); previewController.view = previewPane.view
+        let editItem = NSSplitViewItem(viewController: editController); editItem.minimumThickness = 280
+        previewItem = NSSplitViewItem(viewController: previewController); previewItem.minimumThickness = 280; previewItem.canCollapse = true
+        splitController.addSplitViewItem(editItem); splitController.addSplitViewItem(previewItem)
+        previewItem.isCollapsed = true
+        editorSplit.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
+        root.addArrangedSubview(editorSplit)
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
         status.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -187,7 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let scroll = tab.scroll; scroll.translatesAutoresizingMaskIntoConstraints = false; editorHost.addSubview(scroll)
         NSLayoutConstraint.activate([scroll.leadingAnchor.constraint(equalTo: editorHost.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: editorHost.trailingAnchor), scroll.topAnchor.constraint(equalTo: editorHost.topAnchor), scroll.bottomAnchor.constraint(equalTo: editorHost.bottomAnchor)])
         editorHost.layoutSubtreeIfNeeded(); tab.setWrap(wrap)
-        window.makeFirstResponder(tab.textView); tab.highlight(); updateStatus(); updateTabLabels(); schedulePersistence()
+        window.makeFirstResponder(tab.textView); tab.highlight(); updateStatus(); updateTabLabels(); refreshPreview(); schedulePersistence()
     }
     func rebuildTabs() {
         tabStack.arrangedSubviews.forEach { tabStack.removeArrangedSubview($0); $0.removeFromSuperview() }; tabButtons = [:]
@@ -283,7 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             tab.snapshot.diskModified = try FileManager.default.attributesOfItem(atPath: destination.path)[.modificationDate] as? Date
             NSDocumentController.shared.noteNewRecentDocumentURL(destination)
             tab.textView.setAccessibilityLabel(tab.snapshot.title)
-            tab.highlight(); rebuildTabs(); updateStatus(); updateTabLabels(); persist(); return true
+            tab.highlight(); rebuildTabs(); updateStatus(); updateTabLabels(); refreshPreview(); persist(); return true
         } catch { showError(error); return false }
     }
     @objc func closeCurrent(_ sender: Any?) { if let current { close(current) } }
@@ -306,7 +324,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
 
     func textDidChange(_ notification: Notification) {
         guard let textView = notification.object as? NSTextView, let tab = tabs.first(where: { $0.textView === textView }) else { return }
-        tab.ruler.needsDisplay = true; tab.highlight(); updateTabLabels(); updateStatus(); schedulePersistence()
+        tab.ruler.needsDisplay = true; tab.highlight(); updateTabLabels(); updateStatus(); refreshPreview(); schedulePersistence()
     }
     func textViewDidChangeSelection(_ notification: Notification) { updateStatus() }
     func updateStatus() {
@@ -322,7 +340,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @objc func changeLanguage(_ sender: Any?) {
         guard let tab = current, let language = languagePopup.titleOfSelectedItem else { return }
         tab.snapshot.syntaxLanguage = language == "Авто" ? nil : language
-        tab.highlight(); updateStatus(); schedulePersistence()
+        tab.highlight(); updateStatus(); refreshPreview(); schedulePersistence()
     }
     @objc func changeEncoding(_ sender: Any?) {
         guard let tab = current, let title = encodingPopup.titleOfSelectedItem, let encoding = TextEncoding(rawValue: title) else { return }
@@ -407,6 +425,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             let range = NSRange(location: TextPosition.offset(ofLine: line, in: tab.textView.string), length: 0)
             tab.textView.setSelectedRange(range); tab.textView.scrollRangeToVisible(range); window.makeFirstResponder(tab.textView)
         }
+    }
+    func refreshPreview() { previewPane.update(current, visible: previewEnabled) }
+    @objc func togglePreview(_ sender: Any?) {
+        previewEnabled.toggle()
+        previewItem.isCollapsed = !previewEnabled
+        window.contentView?.layoutSubtreeIfNeeded()
+        previewButton.state = previewEnabled ? .on : .off
+        (sender as? NSMenuItem)?.state = previewEnabled ? .on : .off
+        editorSplit.adjustSubviews()
+        if previewEnabled { editorSplit.setPosition(editorSplit.bounds.width * 0.5, ofDividerAt: 0) }
+        current?.setWrap(wrap); refreshPreview()
     }
     @objc func checkForUpdates() { updater.check(manual: true) }
     @objc func updateSettings() { updater.showSettings() }
