@@ -7,7 +7,7 @@
 <p align="center">Нативный редактор с SQL и Kafka / ksqlDB, поиском с Regex и восстановлением несохранённого текста.</p>
 
 <p align="center">
-  <a href="https://github.com/starscream001/notepad_for_mac/releases/latest"><img src="https://img.shields.io/github/v/release/starscream001/notepad_for_mac?display_name=tag&amp;color=373475" alt="Последняя версия"></a>
+  <a href="https://github.com/starscream001/notepad_for_mac/releases/latest"><img src="https://img.shields.io/github/v/release/starscream001/notepad_for_mac?display_name=tag&amp;color=373475&amp;cacheSeconds=60" alt="Последняя версия"></a>
   <a href="https://github.com/starscream001/notepad_for_mac/actions/workflows/build.yml"><img src="https://github.com/starscream001/notepad_for_mac/actions/workflows/build.yml/badge.svg?branch=main" alt="Сборка и проверки"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-242938?logo=apple&amp;logoColor=white" alt="macOS 13 и новее">
   <img src="https://img.shields.io/badge/Apple_Silicon_%2B_Intel-universal-24515A" alt="Apple Silicon и Intel">
