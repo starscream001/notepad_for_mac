@@ -49,7 +49,8 @@ jobs:
 
   latest:
     name: Publish direct download
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # Release 0.2 is awaiting the final icon choice.
+    if: false
     needs: build
     runs-on: ubuntu-latest
     permissions:
