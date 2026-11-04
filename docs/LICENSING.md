@@ -21,3 +21,5 @@ MIT разрешает использовать приложение и исхо
 ## Компоненты форматирования
 
 sql-formatter 15.9.0 — MIT, оригинальный текст: [sql-formatter-LICENSE.txt](../Resources/Vendor/sql-formatter-LICENSE.txt). Уведомление включено в Mac app resources; Desktop поставляет оригинальный MIT notice в ui/sql-formatter-LICENSE.txt. Общий модуль собирает только SQL/PostgreSQL/MySQL.
+
+В том же уведомлении сохранена MIT-лицензия nearley 2.20.1 — включённого в форматтер runtime парсера.
