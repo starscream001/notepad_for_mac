@@ -53,8 +53,8 @@ if(scheme()&&scheme().dark!==dark())settings.colorScheme='studio';
 renderSchemes();
 const p=scheme(),style=document.body.style;
 for(const key of ['--bg','--panel','--editor','--text','--muted','--border','--accent','--hover'])style.removeProperty(key);
-if(p){const mix=(a,b,t)=>'#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join(''),fg=p.dark?'#F4F4F5':'#202124';
-for(const [k,v]of Object.entries({'--bg':mix(p.background,fg,.04),'--panel':mix(p.background,fg,.09),'--editor':p.background,'--text':fg,'--muted':mix(p.background,fg,.68),'--border':mix(p.background,fg,.22),'--accent':p.accent,'--hover':mix(p.background,p.accent,.22)}))style.setProperty(k,v);
+if(p){const mix=(a,b,t)=>'#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join(''),fg=p.dark?'#F4F4F5':'#000000';
+for(const [k,v]of Object.entries({'--bg':p.dark?mix(p.background,fg,.04):p.background,'--panel':mix(p.background,p.dark?fg:p.accent,p.dark?.09:.10),'--editor':p.background,'--text':fg,'--muted':mix(p.background,fg,.68),'--border':mix(p.background,fg,.22),'--accent':p.accent,'--hover':mix(p.background,p.accent,.22)}))style.setProperty(k,v);
 }
 document.body.classList.toggle('light',!dark());view?.dispatch({effects:themeSlot.reconfigure(dark()?oneDark:[])});refreshPreview();}
 async function checkUpdate(manual=true){try{const result=await call('update',manual);if(manual&&result.current)notice('Установлена последняя доступная версия для вашей ОС.');}catch(e){if(manual)notice(e.message);}}

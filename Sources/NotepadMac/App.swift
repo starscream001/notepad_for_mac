@@ -130,7 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let button = NSButton(title: title, target: self, action: action)
         button.cell = EditorButtonCell(textCell: title)
         button.target = self; button.action = action
-        button.contentTintColor = .labelColor
+        button.contentTintColor = EditorPalette.label
         button.bezelStyle = .rounded
         button.font = .systemFont(ofSize: 13, weight: .medium)
         button.heightAnchor.constraint(equalToConstant: 30).isActive = true
@@ -159,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         previewButton = button(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button("", #selector(showPreferences), symbol: "gearshape")])
+        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button(L("О проекте"), #selector(about), symbol: "info.circle")])
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -177,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             field.font = .systemFont(ofSize: 13); field.controlSize = .regular
             field.heightAnchor.constraint(equalToConstant: 30).isActive = true
             field.isBezeled = true; field.bezelStyle = .roundedBezel
-            field.backgroundColor = EditorPalette.editor; field.textColor = .labelColor
+            field.backgroundColor = EditorPalette.editor; field.textColor = EditorPalette.label
         }
         for toggle in [caseButton, regexButton] {
             let state = toggle.state
@@ -230,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         palettePopup.target = self; palettePopup.action = #selector(preferencePaletteChanged(_:))
         palettePopup.setAccessibilityLabel(InterfaceLanguage.english ? "Color scheme" : "Цветовая схема")
         endingPopup.toolTip = L("Окончания строк") + ": LF / CRLF / CR"
-        let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup, palettePopup]); root.addArrangedSubview(statusRow)
+        let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup, palettePopup, button("", #selector(showPreferences), symbol: "gearshape")]); root.addArrangedSubview(statusRow)
         for child in root.arrangedSubviews {
             child.translatesAutoresizingMaskIntoConstraints = false
             child.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true

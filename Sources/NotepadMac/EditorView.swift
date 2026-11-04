@@ -84,7 +84,7 @@ final class EditorTab {
         textView.isGrammarCheckingEnabled = false
         textView.isAutomaticLinkDetectionEnabled = false
         textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        textView.backgroundColor = EditorPalette.editor; textView.textColor = .textColor
+        textView.backgroundColor = EditorPalette.editor; textView.textColor = EditorPalette.text
         textView.insertionPointColor = .labelColor
         textView.textContainerInset = NSSize(width: 16, height: 16)
         textView.minSize = .zero; textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
@@ -161,7 +161,7 @@ enum Syntax {
         let text = view.string
         let full = NSRange(location: 0, length: (text as NSString).length)
         storage.beginEditing()
-        storage.addAttribute(.foregroundColor, value: NSColor.textColor, range: full)
+        storage.addAttribute(.foregroundColor, value: EditorPalette.text, range: full)
         defer { storage.endEditing() }
         // Keep very large documents responsive; basic editing still works.
         guard full.length < 500_000, language != "Обычный текст" else { return }

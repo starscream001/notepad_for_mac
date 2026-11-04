@@ -10,6 +10,12 @@ struct ColorScheme: Decodable {
     static var current: ColorScheme? { all.first { $0.id == UserDefaults.standard.string(forKey: "colorScheme") } }
 }
 enum EditorPalette {
+    static let label = NSColor(name: NSColor.Name("EditorLabel")) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .labelColor : .black
+    }
+    static let text = NSColor(name: NSColor.Name("EditorText")) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .textColor : .black
+    }
     static func hex(_ text: String) -> NSColor {
         let n = UInt32(text.dropFirst(), radix: 16) ?? 0
         return NSColor(srgbRed: CGFloat((n >> 16) & 255)/255, green: CGFloat((n >> 8) & 255)/255, blue: CGFloat(n & 255)/255, alpha: 1)
@@ -23,17 +29,17 @@ enum EditorPalette {
                 case "editor": return bg
                 case "accent": return accent
                 case "selected": return bg.blended(withFraction: 0.22, of: accent) ?? bg
-                case "button": return bg.blended(withFraction: 0.09, of: fg) ?? bg
-                default: return bg.blended(withFraction: 0.04, of: fg) ?? bg
+                case "button": return bg.blended(withFraction: scheme.dark ? 0.09 : 0.10, of: scheme.dark ? fg : accent) ?? bg
+                default: return scheme.dark ? (bg.blended(withFraction: 0.04, of: fg) ?? bg) : bg
                 }
             }
             let c = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
             return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
         }
     }
-    static let chrome = adaptive("EditorChrome", light: (0.95,0.95,0.97), dark: (0.14,0.14,0.22), role: "chrome")
+    static let chrome = adaptive("EditorChrome", light: (1,1,1), dark: (0.14,0.14,0.22), role: "chrome")
     static let editor = adaptive("EditorCanvas", light: (1,1,1), dark: (0.09,0.09,0.15), role: "editor")
-    static let button = adaptive("EditorControl", light: (0.91,0.92,0.95), dark: (0.17,0.17,0.26), role: "button")
+    static let button = adaptive("EditorControl", light: (0.95,0.95,0.95), dark: (0.17,0.17,0.26), role: "button")
     static let selected = adaptive("EditorSelected", light: (0.89,0.88,0.94), dark: (0.23,0.21,0.30), role: "selected")
     static let accent = adaptive("EditorAccent", light: (0.64,0.32,0.10), dark: (0.94,0.65,0.38), role: "accent")
 }
@@ -58,7 +64,7 @@ final class EditorBar: NSStackView {
 final class EditorButtonCell: NSButtonCell {
     override func drawTitle(_ title: NSAttributedString, withFrame frame: NSRect, in controlView: NSView) -> NSRect {
         let readable = NSMutableAttributedString(attributedString: title)
-        readable.addAttribute(.foregroundColor, value: NSColor.labelColor, range: NSRange(location: 0, length: readable.length))
+        readable.addAttribute(.foregroundColor, value: EditorPalette.label, range: NSRange(location: 0, length: readable.length))
         return super.drawTitle(readable, withFrame: frame, in: controlView)
     }
     override func drawBezel(withFrame frame: NSRect, in view: NSView) {
@@ -74,7 +80,7 @@ final class EditorPopupCell: NSPopUpButtonCell {
         EditorPalette.button.setFill()
         NSBezierPath(roundedRect: frame.insetBy(dx: 1, dy: 1), xRadius: 7, yRadius: 7).fill()
         let style = NSMutableParagraphStyle(); style.lineBreakMode = .byTruncatingTail
-        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.labelColor, .paragraphStyle: style]
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: EditorPalette.label, .paragraphStyle: style]
         let text = (selectedItem?.title ?? title) as NSString
         let height = text.size(withAttributes: attributes).height
         text.draw(in: NSRect(x: frame.minX + 10, y: frame.midY - height / 2, width: max(0, frame.width - 34), height: height), withAttributes: attributes)
