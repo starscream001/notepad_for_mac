@@ -32,7 +32,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.sha256
-          retention-days: 30
+          retention-days: 7
   desktop:
     name: Desktop · ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -75,7 +75,7 @@ jobs:
             desktop/release/*.AppImage
             desktop/release/*.deb
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
   publish:
     name: Publish GitHub Release
     if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || startsWith(github.ref, 'refs/tags/v')

@@ -129,6 +129,7 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         tests.testKafkaKeywordsAndFunctions()
         tests.testDollarQuotesAndUnicodeQuery()
         try tests.testSessionRemembersLanguageAndReadsOlderSessions()
+        try FormattingTests.run()
         let updates = UpdateTests()
         updates.testVersionOrdering()
         updates.testSchedule()
@@ -142,6 +143,6 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         try updates.testForeignInstallTicketRejected()
         if CommandLine.arguments.contains("--network") { try await updates.testLiveGitHubTransport() }
         guard CheckState.failures == 0 else { exit(1) }
-        print("22 checks passed (including all 12 encoding / line-ending combinations).")
+        print("Core checks passed (encodings, search, recovery, syntax, updates and formatting).")
     }
 }

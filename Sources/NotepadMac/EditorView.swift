@@ -35,7 +35,7 @@ final class LineRuler: NSView {
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
         NSBezierPath(rect: bounds).addClip()
-        NSColor.windowBackgroundColor.setFill(); bounds.fill()
+        EditorPalette.editor.setFill(); bounds.fill()
         guard let editor, let layout = editor.layoutManager, let container = editor.textContainer else { return }
         let ns = editor.string as NSString
         let visible = layout.glyphRange(forBoundingRect: editor.visibleRect, in: container)
@@ -44,6 +44,7 @@ final class LineRuler: NSView {
         var line = TextPosition.lineColumn(in: editor.string, utf16Offset: index).line
         let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .regular), .foregroundColor: NSColor.secondaryLabelColor]
         while index <= min(NSMaxRange(chars), ns.length) {
+            if index == ns.length && ns.length > 0 && !editor.string.hasSuffix("\n") { break }
             var glyph = NSRect.zero
             if index < ns.length {
                 glyph = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: index), effectiveRange: nil)
@@ -83,7 +84,7 @@ final class EditorTab {
         textView.isGrammarCheckingEnabled = false
         textView.isAutomaticLinkDetectionEnabled = false
         textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        textView.backgroundColor = .textBackgroundColor; textView.textColor = .textColor
+        textView.backgroundColor = EditorPalette.editor; textView.textColor = .textColor
         textView.insertionPointColor = .labelColor
         textView.textContainerInset = NSSize(width: 16, height: 16)
         textView.minSize = .zero; textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)

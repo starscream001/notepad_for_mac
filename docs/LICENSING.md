@@ -17,3 +17,7 @@ MIT разрешает использовать приложение и исхо
 Поддержка разработчика добровольная. Все функции приложения доступны бесплатно; размер поддержки не влияет на лицензионные права пользователя.
 
 [Способы поддержки](SUPPORT.md)
+
+## Компоненты форматирования
+
+sql-formatter 15.9.0 — MIT, оригинальный текст: [sql-formatter-LICENSE.txt](../Resources/Vendor/sql-formatter-LICENSE.txt). Уведомление включено в Mac app resources; Desktop поставляет оригинальный MIT notice в ui/sql-formatter-LICENSE.txt. Общий модуль собирает только SQL/PostgreSQL/MySQL.

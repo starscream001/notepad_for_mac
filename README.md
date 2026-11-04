@@ -22,20 +22,24 @@
 </p>
 <p align="center"><strong>macOS · Windows · Linux</strong> · Без входа в GitHub · Бесплатно</p>
 
-<img src="docs/assets/editor-current.jpg" width="100%" alt="Notepad Mac: аккуратные вкладки, редактор Markdown слева и предпросмотр справа.">
+<img src="docs/assets/studio-070.jpg" width="100%" alt="Notepad 0.7.0: SQL, компактные кнопки Studio и нижний выбор палитры Ночной и золото.">
+
+**Оформление в нижней панели.** Выберите светлую, тёмную или системную тему, затем палитру рядом: 14 светлых или 14 тёмных пар + Studio. Повторяющиеся пары объединены. Цвета меняют поверхности и акценты интерфейса; читаемый текст и подсветка кода сохраняются отдельно. [Все пары с HEX](docs/PALETTES.md).
+
+**Форматирование без фоновой нагрузки.** Кнопка «Формат» или **⌘/Ctrl+Shift+F** обрабатывает выделение, а без выделения — документ целиком. JSON сохраняет большие числа и повторяющиеся ключи; SQL поддерживает обычный SQL, PostgreSQL и MySQL (диалект в настройках). Одно Undo отменяет результат. Ошибочный ввод остаётся без изменений. Это форматирование, а не проверка корректности запросов сервером; ksqlDB пока только подсвечивается. Предел команды: JSON — 1 млн, SQL — 50 тыс. единиц UTF-16. На диск результат записывается только по «Сохранить».
 
 <a id="features"></a>
 
 ## Рабочая вкладка — без лишнего
 
-**Русский / English.** Язык интерфейса выбирается в меню приложения на Mac и в нижней панели Desktop. Названия файлов и текст документов не переводятся.
+**Русский / English.** Язык интерфейса выбирается в настройках (кнопка ⚙). Названия файлов и текст документов не переводятся.
 
 **Много вкладок.** Строка прокручивается горизонтально, выбранная вкладка появляется в видимой области. Кнопка **«Вкладки / Tabs»** открывает список с поиском по имени или пути; **⌘/Ctrl+Shift+A** — быстрый вызов. Проверен сценарий **120 документов** в обоих клиентах. Desktop поддерживает до 300 вкладок; объём доступной памяти зависит от файлов.
 
 
-В **0.6** добавлены **Windows и Linux**. Mac остаётся нативным; новый Desktop-клиент использует CodeMirror. Единый визуальный стиль, более компактные кнопки, вкладки сверху и предпросмотр справа.
+В **0.7.0** — оформление **Studio**, одинаковая высота кнопок сверху и снизу, **28 цветовых схем** из подборки Алисы и форматирование **JSON / SQL** по команде. Mac остаётся нативным; Windows/Linux используют Electron и CodeMirror.
 
-[Изменения 0.6.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.6.0) · [История версий](CHANGELOG.md) · [План развития](docs/ROADMAP.md)
+[Изменения 0.7.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.0) · [История версий](CHANGELOG.md) · [План развития](docs/ROADMAP.md)
 
 
 <table>
@@ -71,8 +75,8 @@
 | Платформа | Готовое приложение | Установка |
 | --- | --- | --- |
 | **macOS 13+** · Intel / Apple Silicon | [Скачать ZIP](https://github.com/starscream001/notepad_for_mac/releases/latest/download/Notepad-Mac-universal.zip) | Распаковать → перенести в «Программы» |
-| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Windows-x64-Setup.exe) | Запустить → установить для себя |
-| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
+| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Windows-x64-Setup.exe) | Запустить → установить для себя |
+| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
 
 Готовые пакеты не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
 
@@ -123,7 +127,7 @@ Finder может показывать имя приложения без рас
 
 **Первый переход с 0.1 / 0.2 на 0.3 — вручную:** скачайте ZIP и замените приложение через Finder после выхода через **⌘Q**. Начиная с 0.3, последующие версии можно устанавливать из редактора. Сессии прежних версий совместимы.
 
-[Что нового в 0.6.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.6.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
+[Что нового в 0.7.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
 
 <a id="formats"></a>
 
@@ -269,3 +273,7 @@ GitHub Actions запускает проверки и universal-сборку. Н
 **Дальше:** 0.7 — мобильный прототип Android/iPhone/iPad и планшеты; 0.8 — линтеры и проверка текста; 0.9+ — AI и адаптеры расширений. [Подробности и ограничения](docs/ROADMAP.md).
 
 **Контакты:** [GitHub · starscream001](https://github.com/starscream001) · [Telegram · @Ilya_Manik](https://t.me/Ilya_Manik).
+
+## Хранение выпусков
+
+Установщики и SHA256 доступны для **двух последних стабильных версий**. После успешного выпуска Actions удаляет эти файлы у более старых номерных релизов; теги, исходники и описания изменений остаются. Временные артефакты новых запусков Actions хранятся 7 дней. Сами установщики не коммитятся в Git.

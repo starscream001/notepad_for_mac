@@ -4,6 +4,8 @@ import NotepadCore
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextViewDelegate {
     var window: NSWindow!
     lazy var updater = AppUpdater(app: self)
+    var formatting = false
+    var preferencesPanel: NSPanel?
     var tabs: [EditorTab] = []
     var selectedID: UUID?
     var current: EditorTab? { tabs.first { $0.snapshot.id == selectedID } }
@@ -27,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     let encodingPopup = NSPopUpButton()
     let endingPopup = NSPopUpButton()
     let themePopup = NSPopUpButton()
+    let palettePopup = NSPopUpButton()
     var tabButtons: [UUID: NSButton] = [:]
     var tabSurfaces: [UUID: TabSurface] = [:]
     var tabListPanel: NSPanel?
@@ -71,11 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             entry.keyEquivalentModifierMask = modifiers; menu.addItem(entry)
         }
         let app = submenu("Notepad Mac")
-        let languageMenuItem = NSMenuItem(title: L("Интерфейс / Interface"), action: nil, keyEquivalent: "")
-        let languageMenu = NSMenu()
-        let ru = NSMenuItem(title: "Русский", action: #selector(useRussian), keyEquivalent: ""); ru.target = self; ru.state = InterfaceLanguage.english ? .off : .on
-        let en = NSMenuItem(title: "English", action: #selector(useEnglish), keyEquivalent: ""); en.target = self; en.state = InterfaceLanguage.english ? .on : .off
-        languageMenu.addItem(ru); languageMenu.addItem(en); languageMenuItem.submenu = languageMenu; app.addItem(languageMenuItem)
+        item(app, L("Настройки…"), #selector(showPreferences), ",")
         item(app, L("О Notepad Mac"), #selector(about))
         item(app, L("Проверить обновления…"), #selector(checkForUpdates))
         item(app, L("Настройки обновлений…"), #selector(updateSettings))
@@ -105,6 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         item(edit, L("Копировать"), #selector(NSText.copy(_:)), "c")
         item(edit, L("Вставить"), #selector(NSText.paste(_:)), "v")
         item(edit, L("Выделить всё"), #selector(NSText.selectAll(_:)), "a")
+        edit.addItem(.separator())
+        item(edit, L("Форматировать"), #selector(formatDocument(_:)), "f", [.command, .shift])
         let search = submenu(L("Поиск"))
         item(search, L("Найти / заменить…"), #selector(showFind(_:)), "f")
         item(search, L("Найти далее"), #selector(findNext(_:)), "g")
@@ -132,13 +133,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.contentTintColor = .labelColor
         button.bezelStyle = .rounded
         button.font = .systemFont(ofSize: 13, weight: .medium)
-        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
         if let symbol { button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title); button.imagePosition = .imageLeading }
-        button.setAccessibilityLabel(title); button.toolTip = title
+        button.setAccessibilityLabel(title.isEmpty && symbol == "gearshape" ? L("Настройки…") : title); button.toolTip = title.isEmpty && symbol == "gearshape" ? L("Настройки…") : title
         return button
     }
     func row(_ views: [NSView]) -> NSStackView {
-        let stack = NSStackView(views: views); stack.orientation = .horizontal; stack.spacing = 8
+        let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         return stack
     }
@@ -149,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         caseButton.title = L("Регистр"); regexButton.title = ".* Regex"
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
+        window.backgroundColor = EditorPalette.chrome
         window.title = "Notepad Mac"; window.minSize = NSSize(width: 860, height: 440)
         window.delegate = self; window.center(); window.setFrameAutosaveName("EditorWindow")
         let root = NSStackView(); root.wantsLayer = true; root.orientation = .vertical; root.spacing = 0; root.alignment = .leading
@@ -157,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         previewButton = button(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass")])
+        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button("", #selector(showPreferences), symbol: "gearshape")])
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -191,10 +193,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
         pathLabel.font = .systemFont(ofSize: 11)
         status.lineBreakMode = .byTruncatingTail
-        status.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        status.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
         status.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        for popup in [languagePopup, encodingPopup, endingPopup, themePopup] { popup.removeAllItems() }
+        for popup in [languagePopup, encodingPopup, endingPopup, themePopup, palettePopup] { popup.cell = EditorPopupCell(textCell: "", pullsDown: false); popup.removeAllItems(); popup.translatesAutoresizingMaskIntoConstraints = false; popup.heightAnchor.constraint(equalToConstant: 30).isActive = true }
         languagePopup.addItems(withTitles: [L("Авто")] + Syntax.languages.map(L))
         languagePopup.target = self; languagePopup.action = #selector(changeLanguage(_:))
         languagePopup.setAccessibilityLabel(L("Язык подсветки"))
@@ -206,9 +208,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         themePopup.addItems(withTitles: [L("Системная"), L("Светлая"), L("Тёмная")])
         themePopup.selectItem(at: UserDefaults.standard.integer(forKey: "theme"))
         themePopup.target = self; themePopup.action = #selector(changeTheme(_:)); themePopup.setAccessibilityLabel(L("Тема оформления"))
-        for popup in [languagePopup, endingPopup, encodingPopup, themePopup] { popup.controlSize = .small; popup.font = .systemFont(ofSize: 11) }
-        languagePopup.widthAnchor.constraint(equalToConstant: 145).isActive = true
-        let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
+        for popup in [languagePopup, endingPopup, encodingPopup, themePopup] { popup.controlSize = .regular; popup.font = .systemFont(ofSize: 13) }
+        languagePopup.widthAnchor.constraint(equalToConstant: 138).isActive = true
+        endingPopup.widthAnchor.constraint(equalToConstant: 66).isActive = true
+        encodingPopup.widthAnchor.constraint(equalToConstant: 100).isActive = true
+        themePopup.widthAnchor.constraint(equalToConstant: 104).isActive = true
+        palettePopup.widthAnchor.constraint(equalToConstant: 155).isActive = true
+        palettePopup.target = self; palettePopup.action = #selector(preferencePaletteChanged(_:))
+        palettePopup.setAccessibilityLabel(InterfaceLanguage.english ? "Color scheme" : "Цветовая схема")
+        endingPopup.toolTip = L("Окончания строк") + ": LF / CRLF / CR"
+        let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup, palettePopup]); root.addArrangedSubview(statusRow)
         for child in root.arrangedSubviews {
             child.translatesAutoresizingMaskIntoConstraints = false
             child.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
@@ -251,7 +260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             for control in [selectButton, close] { control.translatesAutoresizingMaskIntoConstraints = false; surface.addSubview(control) }
             NSLayoutConstraint.activate([
                 surface.heightAnchor.constraint(equalToConstant: 30),
-                surface.widthAnchor.constraint(equalToConstant: min(240, max(150, CGFloat(tab.snapshot.title.count) * 7 + 62))),
+                surface.widthAnchor.constraint(equalToConstant: min(220, max(150, CGFloat(tab.snapshot.title.count) * 7 + 62))),
                 selectButton.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 12),
                 selectButton.trailingAnchor.constraint(equalTo: close.leadingAnchor, constant: -6),
                 selectButton.topAnchor.constraint(equalTo: surface.topAnchor, constant: 2),
@@ -272,6 +281,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             let b = tabButtons[tab.snapshot.id]
             b?.title = (tab.dirty ? "● " : "") + tab.snapshot.title
             b?.contentTintColor = tab.snapshot.id == selectedID ? .labelColor : .secondaryLabelColor
+            b?.font = .systemFont(ofSize: 13, weight: tab.snapshot.id == selectedID ? .semibold : .regular)
             tabSurfaces[tab.snapshot.id]?.selected = tab.snapshot.id == selectedID
             b?.toolTip = tab.url?.path ?? tab.snapshot.title
             b?.setAccessibilityLabel(tab.snapshot.title + (tab.dirty ? L(", изменён") : ""))
@@ -395,6 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let index = themePopup.indexOfSelectedItem
         NSApp.appearance = index == 1 ? NSAppearance(named: .aqua) : index == 2 ? NSAppearance(named: .darkAqua) : nil
         UserDefaults.standard.set(index, forKey: "theme")
+        refreshSchemes()
         tabs.forEach { $0.highlight(); $0.ruler.needsDisplay = true }
     }
     @objc func toggleWrap(_ sender: Any?) {

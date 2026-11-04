@@ -1,0 +1,226 @@
+[
+  {
+    "id": "graphite",
+    "ru": "Графит",
+    "en": "Graphite",
+    "background": "#1F1F1F",
+    "accent": "#6C757D",
+    "dark": true
+  },
+  {
+    "id": "lime",
+    "ru": "Сланец и лайм",
+    "en": "Slate & lime",
+    "background": "#2B323B",
+    "accent": "#51CF66",
+    "dark": true
+  },
+  {
+    "id": "mono",
+    "ru": "Монохром",
+    "en": "Monochrome",
+    "background": "#1E1E1E",
+    "accent": "#4F4F4F",
+    "dark": true
+  },
+  {
+    "id": "ocean",
+    "ru": "Графит и синий",
+    "en": "Graphite & blue",
+    "background": "#2D3436",
+    "accent": "#0D6FD1",
+    "dark": true
+  },
+  {
+    "id": "amber",
+    "ru": "Уголь и янтарь",
+    "en": "Coal & amber",
+    "background": "#121212",
+    "accent": "#F39C12",
+    "dark": true
+  },
+  {
+    "id": "silver",
+    "ru": "Серебро",
+    "en": "Silver",
+    "background": "#F8F9FA",
+    "accent": "#343A40",
+    "dark": false
+  },
+  {
+    "id": "mist",
+    "ru": "Туман",
+    "en": "Mist",
+    "background": "#F1F3F5",
+    "accent": "#6C757D",
+    "dark": false
+  },
+  {
+    "id": "cream",
+    "ru": "Крем и терракота",
+    "en": "Cream & terracotta",
+    "background": "#FFF8F0",
+    "accent": "#D9534F",
+    "dark": false
+  },
+  {
+    "id": "business",
+    "ru": "Светлый синий",
+    "en": "Light blue",
+    "background": "#E9ECEF",
+    "accent": "#0D6FD1",
+    "dark": false
+  },
+  {
+    "id": "paper",
+    "ru": "Бумага",
+    "en": "Paper",
+    "background": "#FAFAFA",
+    "accent": "#212529",
+    "dark": false
+  },
+  {
+    "id": "ruby",
+    "ru": "Индиго и рубин",
+    "en": "Indigo & ruby",
+    "background": "#1A1A2E",
+    "accent": "#E94560",
+    "dark": true
+  },
+  {
+    "id": "navy",
+    "ru": "Ночной и золото",
+    "en": "Midnight & gold",
+    "background": "#0A1931",
+    "accent": "#FFC947",
+    "dark": true
+  },
+  {
+    "id": "ink",
+    "ru": "Чернила и янтарь",
+    "en": "Ink & amber",
+    "background": "#14213D",
+    "accent": "#FCA311",
+    "dark": true
+  },
+  {
+    "id": "marine",
+    "ru": "Морской и ваниль",
+    "en": "Marine & vanilla",
+    "background": "#0D3B66",
+    "accent": "#FAF0CA",
+    "dark": true
+  },
+  {
+    "id": "teal",
+    "ru": "Синий и мята",
+    "en": "Blue & mint",
+    "background": "#1D3557",
+    "accent": "#A8DADC",
+    "dark": true
+  },
+  {
+    "id": "peach",
+    "ru": "Персик",
+    "en": "Peach",
+    "background": "#FDF6EC",
+    "accent": "#E07A5F",
+    "dark": false
+  },
+  {
+    "id": "classic",
+    "ru": "Белый и синий",
+    "en": "White & blue",
+    "background": "#FFFFFF",
+    "accent": "#1A73E8",
+    "dark": false
+  },
+  {
+    "id": "linen",
+    "ru": "Лён и сланец",
+    "en": "Linen & slate",
+    "background": "#F5F5F0",
+    "accent": "#4A5568",
+    "dark": false
+  },
+  {
+    "id": "rosewood",
+    "ru": "Палисандр",
+    "en": "Rosewood",
+    "background": "#2D1B1E",
+    "accent": "#E8A87C",
+    "dark": true
+  },
+  {
+    "id": "apricot",
+    "ru": "Абрикос и глина",
+    "en": "Apricot & clay",
+    "background": "#FBE8D3",
+    "accent": "#A4472F",
+    "dark": false
+  },
+  {
+    "id": "sand",
+    "ru": "Песок и медь",
+    "en": "Sand & copper",
+    "background": "#F5EBDD",
+    "accent": "#8C4A2F",
+    "dark": false
+  },
+  {
+    "id": "parchment",
+    "ru": "Пергамент",
+    "en": "Parchment",
+    "background": "#E9DCC9",
+    "accent": "#7F4E2D",
+    "dark": false
+  },
+  {
+    "id": "ivory",
+    "ru": "Слоновая кость",
+    "en": "Ivory",
+    "background": "#FDF0D5",
+    "accent": "#9D3B2C",
+    "dark": false
+  },
+  {
+    "id": "yellow",
+    "ru": "Чёрный и жёлтый",
+    "en": "Black & yellow",
+    "background": "#111111",
+    "accent": "#FFE600",
+    "dark": true
+  },
+  {
+    "id": "red",
+    "ru": "Белый и красный",
+    "en": "White & red",
+    "background": "#FFFFFF",
+    "accent": "#FF3B30",
+    "dark": false
+  },
+  {
+    "id": "neon",
+    "ru": "Уголь и зелёный",
+    "en": "Coal & green",
+    "background": "#0F0F0F",
+    "accent": "#00E676",
+    "dark": true
+  },
+  {
+    "id": "pink",
+    "ru": "Чёрный и розовый",
+    "en": "Black & pink",
+    "background": "#101010",
+    "accent": "#FF2E63",
+    "dark": true
+  },
+  {
+    "id": "sky",
+    "ru": "Небесный",
+    "en": "Sky",
+    "background": "#FAFAFA",
+    "accent": "#1B9CFC",
+    "dark": false
+  }
+]

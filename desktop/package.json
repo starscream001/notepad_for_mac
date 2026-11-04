@@ -1,7 +1,7 @@
 {
   "name": "notepad-desktop",
   "productName": "Notepad Desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Text, code and queries — desktop editor by Ilya",
   "author": "Ilya (starscream001)",
   "license": "MIT",
@@ -98,7 +98,8 @@
   "devDependencies": {
     "electron": "45.2.2",
     "electron-builder": "26.18.0",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "sql-formatter": "^15.9.0"
   },
   "homepage": "https://github.com/starscream001/notepad_for_mac"
 }

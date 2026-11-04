@@ -62,3 +62,5 @@ if gh release view latest >/dev/null 2>&1; then
   printf '%s\n' 'Архивная предварительная сборка. Актуальные версии, описание изменений и готовое приложение: https://github.com/starscream001/notepad_for_mac/releases/latest' > archive-notes.md
   retry gh release edit latest --title 'Архив · предварительная сборка' --notes-file archive-notes.md --prerelease=true --latest=false
 fi
+# Delete only old numbered release installers, after successful publication.
+RELEASE_VERSION="$VERSION" node scripts/release-retention.cjs
