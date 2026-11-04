@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     let endingPopup = NSPopUpButton()
     let themePopup = NSPopUpButton()
     var tabButtons: [UUID: NSButton] = [:]
+    var tabSurfaces: [UUID: TabSurface] = [:]
     var persistenceWork: DispatchWorkItem?
     var didWarnPersistence = false
     var sessionWriteBlocked = false
@@ -117,7 +118,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
 
     func button(_ title: String, _ action: Selector, symbol: String? = nil) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
+        button.cell = EditorButtonCell(textCell: title)
+        button.target = self; button.action = action
+        button.contentTintColor = .labelColor
         button.bezelStyle = .rounded
+        button.font = .systemFont(ofSize: 13, weight: .medium)
+        button.heightAnchor.constraint(equalToConstant: 32).isActive = true
         if let symbol { button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title); button.imagePosition = .imageLeading }
         button.setAccessibilityLabel(title); button.toolTip = title
         return button
@@ -144,8 +150,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let tabScroll = NSScrollView(); tabScroll.hasHorizontalScroller = true; tabScroll.autohidesScrollers = true
         tabScroll.drawsBackground = false; tabScroll.documentView = tabStack
         tabStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 38)])
-        tabScroll.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 46)])
+        tabScroll.heightAnchor.constraint(equalToConstant: 52).isActive = true
         root.addArrangedSubview(tabScroll)
         searchField.placeholderString = "Найти"; searchField.setAccessibilityLabel("Найти")
         searchField.target = self; searchField.action = #selector(findNext(_:))
@@ -169,7 +175,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         editorSplit.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
         root.addArrangedSubview(editorSplit)
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
+        pathLabel.font = .systemFont(ofSize: 11)
+        status.lineBreakMode = .byTruncatingTail
         status.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        status.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         languagePopup.addItems(withTitles: ["Авто"] + Syntax.languages)
         languagePopup.target = self; languagePopup.action = #selector(changeLanguage(_:))
@@ -182,7 +191,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         themePopup.addItems(withTitles: ["Системная", "Светлая", "Тёмная"])
         themePopup.selectItem(at: UserDefaults.standard.integer(forKey: "theme"))
         themePopup.target = self; themePopup.action = #selector(changeTheme(_:)); themePopup.setAccessibilityLabel("Тема оформления")
-        let statusRow = row([status, NSView(), NSTextField(labelWithString: "Язык:"), languagePopup, endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
+        for popup in [languagePopup, endingPopup, encodingPopup, themePopup] { popup.controlSize = .small; popup.font = .systemFont(ofSize: 11) }
+        languagePopup.widthAnchor.constraint(equalToConstant: 145).isActive = true
+        let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
         for child in root.arrangedSubviews {
             child.translatesAutoresizingMaskIntoConstraints = false
             child.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
@@ -202,26 +213,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     func select(_ tab: EditorTab) {
         selectedID = tab.snapshot.id
         editorHost.subviews.forEach { $0.removeFromSuperview() }
-        let scroll = tab.scroll; scroll.translatesAutoresizingMaskIntoConstraints = false; editorHost.addSubview(scroll)
+        let scroll = tab.container; scroll.translatesAutoresizingMaskIntoConstraints = false; editorHost.addSubview(scroll)
         NSLayoutConstraint.activate([scroll.leadingAnchor.constraint(equalTo: editorHost.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: editorHost.trailingAnchor), scroll.topAnchor.constraint(equalTo: editorHost.topAnchor), scroll.bottomAnchor.constraint(equalTo: editorHost.bottomAnchor)])
         editorHost.layoutSubtreeIfNeeded(); tab.setWrap(wrap)
         window.makeFirstResponder(tab.textView); tab.highlight(); updateStatus(); updateTabLabels(); refreshPreview(); schedulePersistence()
     }
     func rebuildTabs() {
-        tabStack.arrangedSubviews.forEach { tabStack.removeArrangedSubview($0); $0.removeFromSuperview() }; tabButtons = [:]
+        tabStack.arrangedSubviews.forEach { tabStack.removeArrangedSubview($0); $0.removeFromSuperview() }; tabButtons = [:]; tabSurfaces = [:]
         for tab in tabs {
-            let selectButton = button("", #selector(selectTab(_:)))
-            selectButton.setButtonType(.pushOnPushOff)
+            let surface = TabSurface()
+            surface.translatesAutoresizingMaskIntoConstraints = false
+            let selectButton = NSButton(title: "", target: self, action: #selector(selectTab(_:)))
+            selectButton.isBordered = false; selectButton.font = .systemFont(ofSize: 13, weight: .medium)
             selectButton.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString)
-            selectButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-            selectButton.widthAnchor.constraint(lessThanOrEqualToConstant: 210).isActive = true
             selectButton.lineBreakMode = .byTruncatingTail
-            let close = button("", #selector(closeTab(_:)), symbol: "xmark")
-            close.setAccessibilityLabel("Закрыть \(tab.snapshot.title)"); close.toolTip = "Закрыть вкладку"
-            close.identifier = selectButton.identifier; close.bezelStyle = .inline
-            close.widthAnchor.constraint(equalToConstant: 24).isActive = true
-            let group = NSStackView(views: [selectButton, close]); group.spacing = 2
-            tabStack.addArrangedSubview(group); tabButtons[tab.snapshot.id] = selectButton
+            selectButton.alignment = .left
+            let close = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: "Закрыть вкладку")!, target: self, action: #selector(closeTab(_:)))
+            close.isBordered = false; close.imageScaling = .scaleProportionallyDown
+            close.contentTintColor = .secondaryLabelColor
+            close.setAccessibilityLabel("Закрыть \(tab.snapshot.title)"); close.toolTip = "Закрыть вкладку (⌘W)"
+            close.identifier = selectButton.identifier
+            for control in [selectButton, close] { control.translatesAutoresizingMaskIntoConstraints = false; surface.addSubview(control) }
+            NSLayoutConstraint.activate([
+                surface.heightAnchor.constraint(equalToConstant: 34),
+                surface.widthAnchor.constraint(equalToConstant: min(240, max(150, CGFloat(tab.snapshot.title.count) * 7 + 62))),
+                selectButton.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 12),
+                selectButton.trailingAnchor.constraint(equalTo: close.leadingAnchor, constant: -6),
+                selectButton.topAnchor.constraint(equalTo: surface.topAnchor, constant: 2),
+                selectButton.bottomAnchor.constraint(equalTo: surface.bottomAnchor, constant: -2),
+                close.widthAnchor.constraint(equalToConstant: 24), close.heightAnchor.constraint(equalToConstant: 24),
+                close.trailingAnchor.constraint(equalTo: surface.trailingAnchor, constant: -5),
+                close.centerYAnchor.constraint(equalTo: surface.centerYAnchor)
+            ])
+            tabStack.addArrangedSubview(surface); tabButtons[tab.snapshot.id] = selectButton; tabSurfaces[tab.snapshot.id] = surface
         }
         let add = button("", #selector(newDocument(_:)), symbol: "plus")
         add.setAccessibilityLabel("Новая вкладка"); add.toolTip = "Новая вкладка (⌘N)"
@@ -232,7 +256,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         for tab in tabs {
             let b = tabButtons[tab.snapshot.id]
             b?.title = (tab.dirty ? "● " : "") + tab.snapshot.title
-            b?.state = tab.snapshot.id == selectedID ? .on : .off
+            b?.contentTintColor = tab.snapshot.id == selectedID ? .labelColor : .secondaryLabelColor
+            tabSurfaces[tab.snapshot.id]?.selected = tab.snapshot.id == selectedID
             b?.toolTip = tab.url?.path ?? tab.snapshot.title
             b?.setAccessibilityLabel(tab.snapshot.title + (tab.dirty ? ", изменён" : ""))
         }

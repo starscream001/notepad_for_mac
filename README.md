@@ -21,11 +21,14 @@
 </p>
 <p align="center"><strong>Intel + Apple Silicon</strong> · Один архив · Без входа в GitHub · Бесплатно</p>
 
-<img src="docs/assets/editor-dark.jpg" width="100%" alt="Настоящее окно Notepad Mac: вкладки query.sql и stream.ksql, номера строк и подсветка Kafka / ksqlDB в тёмной теме.">
+<img src="docs/assets/editor-current.jpg" width="100%" alt="Notepad Mac: аккуратные вкладки, редактор Markdown слева и предпросмотр справа.">
 
 <a id="features"></a>
 
 ## Рабочая вкладка — без лишнего
+
+В **0.5** — цельные вкладки с крестиками внутри, скруглённые кнопки и отдельная область номеров строк. Единые отступы и компактная строка состояния.
+
 
 <table>
 <tr>
@@ -102,11 +105,14 @@ Finder может показывать имя приложения без рас
 
 **Первый переход с 0.1 / 0.2 на 0.3 — вручную:** скачайте ZIP и замените приложение через Finder после выхода через **⌘Q**. Начиная с 0.3, последующие версии можно устанавливать из редактора. Сессии прежних версий совместимы.
 
-[Что нового в 0.4.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.4.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
+[Что нового в 0.5.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.5.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
 
 <a id="formats"></a>
 
 ## Предпросмотр Markdown и HTML
+
+<img src="docs/assets/preview.gif" width="100%" alt="Реальная демонстрация: Markdown, обновление текста и HTML со встроенным CSS.">
+
 
 Нажмите **«Просмотр»** или **⌥⌘P**: слева — исходный текст, справа — результат. Панели можно растягивать разделителем. Просмотр обновляется при вводе и работает без интернета. Поддерживаются Markdown (включая таблицы и блоки кода) и HTML со встроенным CSS. Для новой вкладки выберите нужный язык внизу окна.
 

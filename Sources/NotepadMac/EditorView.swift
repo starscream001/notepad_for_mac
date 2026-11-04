@@ -17,16 +17,21 @@ final class CodeTextView: NSTextView {
     }
 }
 
-final class LineRuler: NSRulerView {
+final class LineRuler: NSView {
+    let ruleThickness: CGFloat = 48
+    var observer: NSObjectProtocol?
+    override var isFlipped: Bool { true }
     weak var editor: NSTextView?
     init(editor: NSTextView, scroll: NSScrollView) {
         self.editor = editor
-        super.init(scrollView: scroll, orientation: .verticalRuler)
-        clientView = editor
-        ruleThickness = 56
+        super.init(frame: .zero)
+        wantsLayer = true; layer?.masksToBounds = true
+        scroll.contentView.postsBoundsChangedNotifications = true
+        observer = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scroll.contentView, queue: .main) { [weak self] _ in self?.needsDisplay = true }
     }
     required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override func drawHashMarksAndLabels(in rect: NSRect) {
+    deinit { if let observer { NotificationCenter.default.removeObserver(observer) } }
+    override func draw(_ rect: NSRect) {
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
         NSBezierPath(rect: bounds).addClip()
@@ -43,7 +48,7 @@ final class LineRuler: NSRulerView {
             if index < ns.length {
                 glyph = layout.lineFragmentRect(forGlyphAt: layout.glyphIndexForCharacter(at: index), effectiveRange: nil)
             } else { glyph = layout.extraLineFragmentRect }
-            let y = glyph.minY + editor.textContainerOrigin.y - editor.visibleRect.minY
+            let y = editor.convert(NSPoint(x: 0, y: glyph.minY + editor.textContainerOrigin.y), to: self).y
             let label = "\(line)" as NSString
             label.draw(at: NSPoint(x: ruleThickness - label.size(withAttributes: attributes).width - 12, y: y), withAttributes: attributes)
             if index >= ns.length { break }
@@ -56,6 +61,7 @@ final class LineRuler: NSRulerView {
 
 final class EditorTab {
     var snapshot: SessionTab
+    let container = NSView()
     let scroll = NSScrollView()
     let textView = CodeTextView()
     var ruler: LineRuler!
@@ -87,7 +93,14 @@ final class EditorTab {
         scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true
         scroll.documentView = textView
         ruler = LineRuler(editor: textView, scroll: scroll)
-        scroll.verticalRulerView = ruler; scroll.hasVerticalRuler = true; scroll.rulersVisible = true
+        container.wantsLayer = true; container.layer?.masksToBounds = true
+        for view in [ruler!, scroll] { view.translatesAutoresizingMaskIntoConstraints = false; container.addSubview(view) }
+        NSLayoutConstraint.activate([
+            ruler.leadingAnchor.constraint(equalTo: container.leadingAnchor), ruler.widthAnchor.constraint(equalToConstant: 48),
+            ruler.topAnchor.constraint(equalTo: container.topAnchor), ruler.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            scroll.leadingAnchor.constraint(equalTo: ruler.trailingAnchor), scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: container.topAnchor), scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
         setWrap(wrap)
         textView.setSelectedRange(NSRange(location: min(snapshot.selection, (snapshot.text as NSString).length), length: 0))
     }
