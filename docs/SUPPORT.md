@@ -23,3 +23,5 @@
 - Предложить улучшение кода или документации.
 
 [Лицензия MIT](../LICENSE) · [Пояснение об авторстве и условиях использования](LICENSING.md)
+
+Контакт разработчика: [Telegram @Ilya_Manik](https://t.me/Ilya_Manik) · [GitHub starscream001](https://github.com/starscream001).

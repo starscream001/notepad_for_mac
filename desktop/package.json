@@ -63,7 +63,13 @@
       ],
       "icon": "assets/icon.png",
       "category": "Utility",
-      "artifactName": "Notepad-Desktop-${version}-Linux-x64.${ext}"
+      "artifactName": "Notepad-Desktop-${version}-Linux-x64.${ext}",
+      "maintainer": "Ilya (starscream001)",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "notepad-desktop"
+        }
+      }
     },
     "mac": {
       "target": "zip",
@@ -93,5 +99,6 @@
     "electron": "45.2.2",
     "electron-builder": "26.18.0",
     "esbuild": "^0.28.2"
-  }
+  },
+  "homepage": "https://github.com/starscream001/notepad_for_mac"
 }

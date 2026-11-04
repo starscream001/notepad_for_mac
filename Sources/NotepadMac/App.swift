@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     let findStack = NSStackView()
     let searchField = NSSearchField()
     let replaceField = NSTextField()
-    let caseButton = NSButton(checkboxWithTitle: "Регистр", target: nil, action: nil)
+    let caseButton = NSButton(checkboxWithTitle: L("Регистр"), target: nil, action: nil)
     let regexButton = NSButton(checkboxWithTitle: ".* Regex", target: nil, action: nil)
     let findStatus = NSTextField(labelWithString: "")
     let languagePopup = NSPopUpButton()
@@ -29,6 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     let themePopup = NSPopUpButton()
     var tabButtons: [UUID: NSButton] = [:]
     var tabSurfaces: [UUID: TabSurface] = [:]
+    var tabListPanel: NSPanel?
+    let tabListSearch = NSSearchField()
+    let tabListRows = NSStackView()
     var persistenceWork: DispatchWorkItem?
     var didWarnPersistence = false
     var sessionWriteBlocked = false
@@ -68,50 +71,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             entry.keyEquivalentModifierMask = modifiers; menu.addItem(entry)
         }
         let app = submenu("Notepad Mac")
-        item(app, "О Notepad Mac", #selector(about))
-        item(app, "Проверить обновления…", #selector(checkForUpdates))
-        item(app, "Настройки обновлений…", #selector(updateSettings))
-        item(app, "Поддержать разработчика…", #selector(supportDeveloper))
+        let languageMenuItem = NSMenuItem(title: L("Интерфейс / Interface"), action: nil, keyEquivalent: "")
+        let languageMenu = NSMenu()
+        let ru = NSMenuItem(title: "Русский", action: #selector(useRussian), keyEquivalent: ""); ru.target = self; ru.state = InterfaceLanguage.english ? .off : .on
+        let en = NSMenuItem(title: "English", action: #selector(useEnglish), keyEquivalent: ""); en.target = self; en.state = InterfaceLanguage.english ? .on : .off
+        languageMenu.addItem(ru); languageMenu.addItem(en); languageMenuItem.submenu = languageMenu; app.addItem(languageMenuItem)
+        item(app, L("О Notepad Mac"), #selector(about))
+        item(app, L("Проверить обновления…"), #selector(checkForUpdates))
+        item(app, L("Настройки обновлений…"), #selector(updateSettings))
+        item(app, L("Поддержать разработчика…"), #selector(supportDeveloper))
         app.addItem(.separator())
-        item(app, "Скрыть Notepad Mac", #selector(NSApplication.hide(_:)), "h")
-        item(app, "Завершить Notepad Mac", #selector(NSApplication.terminate(_:)), "q")
-        let file = submenu("Файл")
-        item(file, "Новая вкладка", #selector(newDocument(_:)), "n")
-        item(file, "Открыть…", #selector(openDocument(_:)), "o")
-        let recentItem = NSMenuItem(title: "Недавние файлы", action: nil, keyEquivalent: "")
-        let recentMenu = NSMenu(title: "Недавние файлы")
+        item(app, L("Скрыть Notepad Mac"), #selector(NSApplication.hide(_:)), "h")
+        item(app, L("Завершить Notepad Mac"), #selector(NSApplication.terminate(_:)), "q")
+        let file = submenu(L("Файл"))
+        item(file, L("Новая вкладка"), #selector(newDocument(_:)), "n")
+        item(file, L("Открыть…"), #selector(openDocument(_:)), "o")
+        let recentItem = NSMenuItem(title: L("Недавние файлы"), action: nil, keyEquivalent: "")
+        let recentMenu = NSMenu(title: L("Недавние файлы"))
         recentItem.submenu = recentMenu; file.addItem(recentItem)
         NSDocumentController.shared.recentDocumentURLs.prefix(12).forEach { url in
             let entry = NSMenuItem(title: url.lastPathComponent, action: #selector(openRecent(_:)), keyEquivalent: "")
             entry.representedObject = url; recentMenu.addItem(entry)
         }
         file.addItem(.separator())
-        item(file, "Сохранить", #selector(saveDocument(_:)), "s")
-        item(file, "Сохранить как…", #selector(saveAs(_:)), "s", [.command, .shift])
-        item(file, "Закрыть вкладку", #selector(closeCurrent(_:)), "w")
-        let edit = submenu("Правка")
-        item(edit, "Отменить", Selector(("undo:")), "z")
-        item(edit, "Повторить", Selector(("redo:")), "z", [.command, .shift])
+        item(file, L("Сохранить"), #selector(saveDocument(_:)), "s")
+        item(file, L("Сохранить как…"), #selector(saveAs(_:)), "s", [.command, .shift])
+        item(file, L("Закрыть вкладку"), #selector(closeCurrent(_:)), "w")
+        let edit = submenu(L("Правка"))
+        item(edit, L("Отменить"), Selector(("undo:")), "z")
+        item(edit, L("Повторить"), Selector(("redo:")), "z", [.command, .shift])
         edit.addItem(.separator())
-        item(edit, "Вырезать", #selector(NSText.cut(_:)), "x")
-        item(edit, "Копировать", #selector(NSText.copy(_:)), "c")
-        item(edit, "Вставить", #selector(NSText.paste(_:)), "v")
-        item(edit, "Выделить всё", #selector(NSText.selectAll(_:)), "a")
-        let search = submenu("Поиск")
-        item(search, "Найти / заменить…", #selector(showFind(_:)), "f")
-        item(search, "Найти далее", #selector(findNext(_:)), "g")
-        item(search, "Найти предыдущее", #selector(findPrevious(_:)), "g", [.command, .shift])
-        item(search, "Перейти к строке…", #selector(goToLine(_:)), "l")
-        let view = submenu("Вид")
-        item(view, "Предпросмотр Markdown / HTML", #selector(togglePreview(_:)), "p", [.command, .option])
-        item(view, "Перенос строк", #selector(toggleWrap(_:)), "w", [.command, .option])
-        item(view, "Увеличить шрифт", #selector(zoomIn(_:)), "=")
-        item(view, "Уменьшить шрифт", #selector(zoomOut(_:)), "-")
-        item(view, "Следующая вкладка", #selector(nextTab(_:)), "]", [.command, .shift])
-        item(view, "Предыдущая вкладка", #selector(previousTab(_:)), "[", [.command, .shift])
-        let windowMenu = submenu("Окно")
-        item(windowMenu, "Свернуть", #selector(NSWindow.performMiniaturize(_:)), "m")
-        item(windowMenu, "На весь экран", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
+        item(edit, L("Вырезать"), #selector(NSText.cut(_:)), "x")
+        item(edit, L("Копировать"), #selector(NSText.copy(_:)), "c")
+        item(edit, L("Вставить"), #selector(NSText.paste(_:)), "v")
+        item(edit, L("Выделить всё"), #selector(NSText.selectAll(_:)), "a")
+        let search = submenu(L("Поиск"))
+        item(search, L("Найти / заменить…"), #selector(showFind(_:)), "f")
+        item(search, L("Найти далее"), #selector(findNext(_:)), "g")
+        item(search, L("Найти предыдущее"), #selector(findPrevious(_:)), "g", [.command, .shift])
+        item(search, L("Перейти к строке…"), #selector(goToLine(_:)), "l")
+        let view = submenu(L("Вид"))
+        item(view, L("Все вкладки…"), #selector(showTabList), "a", [.command, .shift])
+        item(view, L("Предпросмотр Markdown / HTML"), #selector(togglePreview(_:)), "p", [.command, .option])
+        item(view, L("Перенос строк"), #selector(toggleWrap(_:)), "w", [.command, .option])
+        item(view, L("Увеличить шрифт"), #selector(zoomIn(_:)), "=")
+        item(view, L("Уменьшить шрифт"), #selector(zoomOut(_:)), "-")
+        item(view, L("Следующая вкладка"), #selector(nextTab(_:)), "]", [.command, .shift])
+        item(view, L("Предыдущая вкладка"), #selector(previousTab(_:)), "[", [.command, .shift])
+        let windowMenu = submenu(L("Окно"))
+        item(windowMenu, L("Свернуть"), #selector(NSWindow.performMiniaturize(_:)), "m")
+        item(windowMenu, L("На весь экран"), #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
         NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = main
     }
@@ -123,46 +132,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.contentTintColor = .labelColor
         button.bezelStyle = .rounded
         button.font = .systemFont(ofSize: 13, weight: .medium)
-        button.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
         if let symbol { button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title); button.imagePosition = .imageLeading }
         button.setAccessibilityLabel(title); button.toolTip = title
         return button
     }
     func row(_ views: [NSView]) -> NSStackView {
         let stack = NSStackView(views: views); stack.orientation = .horizontal; stack.spacing = 8
-        stack.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         return stack
     }
     func makeWindow() {
+        for item in splitController.splitViewItems { splitController.removeSplitViewItem(item) }
+        findStack.arrangedSubviews.forEach { findStack.removeArrangedSubview($0); $0.removeFromSuperview() }
+        previewEnabled = false
+        caseButton.title = L("Регистр"); regexButton.title = ".* Regex"
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.title = "Notepad Mac"; window.minSize = NSSize(width: 860, height: 440)
         window.delegate = self; window.center(); window.setFrameAutosaveName("EditorWindow")
         let root = NSStackView(); root.wantsLayer = true; root.orientation = .vertical; root.spacing = 0; root.alignment = .leading
         window.contentView = root
         pathLabel.lineBreakMode = .byTruncatingMiddle; pathLabel.textColor = .secondaryLabelColor
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        previewButton = button("Просмотр", #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
+        previewButton = button(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button("Новый", #selector(newDocument(_:)), symbol: "plus"), button("Открыть", #selector(openDocument(_:)), symbol: "folder"), button("Сохранить", #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), previewButton, button("Поиск", #selector(showFind(_:)), symbol: "magnifyingglass")])
+        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass")])
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
         let tabScroll = NSScrollView(); tabScroll.hasHorizontalScroller = true; tabScroll.autohidesScrollers = true
         tabScroll.drawsBackground = false; tabScroll.documentView = tabStack
         tabStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 46)])
-        tabScroll.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 40)])
+        tabScroll.heightAnchor.constraint(equalToConstant: 44).isActive = true
         root.addArrangedSubview(tabScroll)
-        searchField.placeholderString = "Найти"; searchField.setAccessibilityLabel("Найти")
+        searchField.placeholderString = L("Найти"); searchField.setAccessibilityLabel(L("Найти"))
         searchField.target = self; searchField.action = #selector(findNext(_:))
         searchField.sendsSearchStringImmediately = false
-        replaceField.placeholderString = "Заменить на"; replaceField.setAccessibilityLabel("Заменить на")
+        replaceField.placeholderString = L("Заменить на"); replaceField.setAccessibilityLabel(L("Заменить на"))
         searchField.widthAnchor.constraint(equalToConstant: 220).isActive = true
         replaceField.widthAnchor.constraint(equalToConstant: 220).isActive = true
         findStatus.font = .systemFont(ofSize: 11); findStatus.textColor = .secondaryLabelColor
         findStack.orientation = .vertical; findStack.alignment = .leading; findStack.spacing = 0
-        findStack.addArrangedSubview(row([searchField, caseButton, regexButton, button("Назад", #selector(findPrevious(_:))), button("Далее", #selector(findNext(_:))), button("Закрыть", #selector(hideFind(_:)))]))
-        findStack.addArrangedSubview(row([replaceField, button("Заменить", #selector(replaceOne(_:))), button("Заменить всё", #selector(replaceAll(_:))), findStatus]))
+        findStack.addArrangedSubview(row([searchField, caseButton, regexButton, button(L("Назад"), #selector(findPrevious(_:))), button(L("Далее"), #selector(findNext(_:))), button(L("Закрыть"), #selector(hideFind(_:)))]))
+        findStack.addArrangedSubview(row([replaceField, button(L("Заменить"), #selector(replaceOne(_:))), button(L("Заменить всё"), #selector(replaceAll(_:))), findStatus]))
         findStack.isHidden = true; root.addArrangedSubview(findStack)
         _ = splitController.view
         editorSplit.isVertical = true; editorSplit.dividerStyle = .thin
@@ -180,17 +194,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         status.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         status.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        languagePopup.addItems(withTitles: ["Авто"] + Syntax.languages)
+        for popup in [languagePopup, encodingPopup, endingPopup, themePopup] { popup.removeAllItems() }
+        languagePopup.addItems(withTitles: [L("Авто")] + Syntax.languages.map(L))
         languagePopup.target = self; languagePopup.action = #selector(changeLanguage(_:))
-        languagePopup.setAccessibilityLabel("Язык подсветки")
-        languagePopup.toolTip = "Язык подсветки: Авто — по расширению файла"
+        languagePopup.setAccessibilityLabel(L("Язык подсветки"))
+        languagePopup.toolTip = L("Язык подсветки: Авто — по расширению файла")
         encodingPopup.addItems(withTitles: TextEncoding.allCases.map(\.rawValue))
-        encodingPopup.target = self; encodingPopup.action = #selector(changeEncoding(_:)); encodingPopup.setAccessibilityLabel("Кодировка файла")
+        encodingPopup.target = self; encodingPopup.action = #selector(changeEncoding(_:)); encodingPopup.setAccessibilityLabel(L("Кодировка файла"))
         endingPopup.addItems(withTitles: LineEnding.allCases.map(\.rawValue))
-        endingPopup.target = self; endingPopup.action = #selector(changeEnding(_:)); endingPopup.setAccessibilityLabel("Окончания строк")
-        themePopup.addItems(withTitles: ["Системная", "Светлая", "Тёмная"])
+        endingPopup.target = self; endingPopup.action = #selector(changeEnding(_:)); endingPopup.setAccessibilityLabel(L("Окончания строк"))
+        themePopup.addItems(withTitles: [L("Системная"), L("Светлая"), L("Тёмная")])
         themePopup.selectItem(at: UserDefaults.standard.integer(forKey: "theme"))
-        themePopup.target = self; themePopup.action = #selector(changeTheme(_:)); themePopup.setAccessibilityLabel("Тема оформления")
+        themePopup.target = self; themePopup.action = #selector(changeTheme(_:)); themePopup.setAccessibilityLabel(L("Тема оформления"))
         for popup in [languagePopup, endingPopup, encodingPopup, themePopup] { popup.controlSize = .small; popup.font = .systemFont(ofSize: 11) }
         languagePopup.widthAnchor.constraint(equalToConstant: 145).isActive = true
         let statusRow = row([status, NSView(), languagePopup, endingPopup, encodingPopup, themePopup]); root.addArrangedSubview(statusRow)
@@ -203,7 +218,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     }
 
     @objc func newDocument(_ sender: Any?) {
-        addTab(SessionTab(title: "Без имени \(tabs.filter { $0.url == nil }.count + 1)"))
+        addTab(SessionTab(title: L("Без имени \(tabs.filter { $0.url == nil }.count + 1)")))
     }
     func addTab(_ snapshot: SessionTab) {
         let tab = EditorTab(snapshot, fontSize: fontSize, wrap: wrap)
@@ -228,14 +243,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             selectButton.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString)
             selectButton.lineBreakMode = .byTruncatingTail
             selectButton.alignment = .left
-            let close = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: "Закрыть вкладку")!, target: self, action: #selector(closeTab(_:)))
+            let close = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: L("Закрыть вкладку"))!, target: self, action: #selector(closeTab(_:)))
             close.isBordered = false; close.imageScaling = .scaleProportionallyDown
             close.contentTintColor = .secondaryLabelColor
-            close.setAccessibilityLabel("Закрыть \(tab.snapshot.title)"); close.toolTip = "Закрыть вкладку (⌘W)"
+            close.setAccessibilityLabel(L("Закрыть \(tab.snapshot.title)")); close.toolTip = L("Закрыть вкладку (⌘W)")
             close.identifier = selectButton.identifier
             for control in [selectButton, close] { control.translatesAutoresizingMaskIntoConstraints = false; surface.addSubview(control) }
             NSLayoutConstraint.activate([
-                surface.heightAnchor.constraint(equalToConstant: 34),
+                surface.heightAnchor.constraint(equalToConstant: 30),
                 surface.widthAnchor.constraint(equalToConstant: min(240, max(150, CGFloat(tab.snapshot.title.count) * 7 + 62))),
                 selectButton.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 12),
                 selectButton.trailingAnchor.constraint(equalTo: close.leadingAnchor, constant: -6),
@@ -248,7 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             tabStack.addArrangedSubview(surface); tabButtons[tab.snapshot.id] = selectButton; tabSurfaces[tab.snapshot.id] = surface
         }
         let add = button("", #selector(newDocument(_:)), symbol: "plus")
-        add.setAccessibilityLabel("Новая вкладка"); add.toolTip = "Новая вкладка (⌘N)"
+        add.setAccessibilityLabel(L("Новая вкладка")); add.toolTip = L("Новая вкладка (⌘N)")
         tabStack.addArrangedSubview(add)
         tabStack.layoutSubtreeIfNeeded(); updateTabLabels()
     }
@@ -259,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             b?.contentTintColor = tab.snapshot.id == selectedID ? .labelColor : .secondaryLabelColor
             tabSurfaces[tab.snapshot.id]?.selected = tab.snapshot.id == selectedID
             b?.toolTip = tab.url?.path ?? tab.snapshot.title
-            b?.setAccessibilityLabel(tab.snapshot.title + (tab.dirty ? ", изменён" : ""))
+            b?.setAccessibilityLabel(tab.snapshot.title + (tab.dirty ? L(", изменён") : ""))
         }
         if let selectedID, let button = tabButtons[selectedID] { button.scrollToVisible(button.bounds) }
         window.title = (current?.snapshot.title ?? "Notepad Mac") + " — Notepad Mac"
@@ -288,7 +303,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         do {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             if (attributes[.size] as? NSNumber)?.intValue ?? 0 > 20_000_000 {
-                throw EditorError.message("В первой версии поддерживаются файлы до 20 МБ.")
+                throw EditorError.message(L("В первой версии поддерживаются файлы до 20 МБ."))
             }
             let decoded = try TextCodec.decode(Data(contentsOf: url))
             addTab(SessionTab(path: url.path, text: decoded.text, savedText: decoded.text, encoding: decoded.encoding, lineEnding: decoded.lineEnding, diskModified: attributes[.modificationDate] as? Date, title: url.lastPathComponent))
@@ -307,15 +322,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
         guard let destination else { return false }
         if tabs.contains(where: { $0 !== tab && $0.url == destination }) {
-            showError(EditorError.message("Этот файл уже открыт в другой вкладке. Закройте её перед сохранением.")); return false
+            showError(EditorError.message(L("Этот файл уже открыт в другой вкладке. Закройте её перед сохранением."))); return false
         }
         do {
             if destination == tab.url, FileManager.default.fileExists(atPath: destination.path) {
                 let modified = try FileManager.default.attributesOfItem(atPath: destination.path)[.modificationDate] as? Date
                 if modified != tab.snapshot.diskModified {
-                    let alert = NSAlert(); alert.messageText = "Файл изменён другой программой"
-                    alert.informativeText = "Перезаписать файл «\(destination.lastPathComponent)» текущим текстом? Для сохранения обеих версий выберите «Сохранить как…»."
-                    alert.addButton(withTitle: "Отмена"); alert.addButton(withTitle: "Перезаписать")
+                    let alert = NSAlert(); alert.messageText = L("Файл изменён другой программой")
+                    alert.informativeText = L("Перезаписать файл «\(destination.lastPathComponent)» текущим текстом? Для сохранения обеих версий выберите «Сохранить как…».")
+                    alert.addButton(withTitle: L("Отмена")); alert.addButton(withTitle: L("Перезаписать"))
                     guard alert.runModal() == .alertSecondButtonReturn else { return false }
                 }
             }
@@ -333,9 +348,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @objc func closeTab(_ sender: NSButton) { if let tab = tabFor(sender) { close(tab) } }
     func close(_ tab: EditorTab) {
         if tab.dirty {
-            let alert = NSAlert(); alert.messageText = "Сохранить «\(tab.snapshot.title)»?"
-            alert.informativeText = "При закрытии без сохранения изменения этой вкладки будут удалены."
-            alert.addButton(withTitle: "Сохранить"); alert.addButton(withTitle: "Отмена"); alert.addButton(withTitle: "Не сохранять")
+            let alert = NSAlert(); alert.messageText = L("Сохранить «\(tab.snapshot.title)»?")
+            alert.informativeText = L("При закрытии без сохранения изменения этой вкладки будут удалены.")
+            alert.addButton(withTitle: L("Сохранить")); alert.addButton(withTitle: L("Отмена")); alert.addButton(withTitle: L("Не сохранять"))
             let response = alert.runModal()
             if response == .alertSecondButtonReturn { return }
             if response == .alertFirstButtonReturn && !save(tab, choosePath: tab.url == nil) { return }
@@ -355,15 +370,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     func updateStatus() {
         guard let tab = current else { return }
         let position = TextPosition.lineColumn(in: tab.textView.string, utf16Offset: tab.textView.selectedRange().location)
-        status.stringValue = "Стр \(position.line), стлб \(position.column)   ·   \(tab.language)   ·   \(tab.textView.string.count) симв."
-        pathLabel.stringValue = tab.url?.path ?? "Новый документ · восстанавливается при следующем запуске"
+        status.stringValue = L("Стр \(position.line), стлб \(position.column)   ·   \(L(tab.language))   ·   \(tab.textView.string.count) симв.")
+        pathLabel.stringValue = tab.url?.path ?? L("Новый документ · восстанавливается при следующем запуске")
         pathLabel.toolTip = pathLabel.stringValue
-        languagePopup.selectItem(withTitle: tab.snapshot.syntaxLanguage ?? "Авто")
+        languagePopup.selectItem(withTitle: L(tab.snapshot.syntaxLanguage ?? "Авто"))
         encodingPopup.selectItem(withTitle: tab.snapshot.encoding.rawValue)
         endingPopup.selectItem(withTitle: tab.snapshot.lineEnding.rawValue)
     }
     @objc func changeLanguage(_ sender: Any?) {
-        guard let tab = current, let language = languagePopup.titleOfSelectedItem else { return }
+        guard let tab = current, let displayedLanguage = languagePopup.titleOfSelectedItem else { return }
+        let language = InterfaceLanguage.source(displayedLanguage)
         tab.snapshot.syntaxLanguage = language == "Авто" ? nil : language
         tab.highlight(); updateStatus(); refreshPreview(); schedulePersistence()
     }
@@ -407,14 +423,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         if searchField.stringValue.isEmpty { showFind(nil); return }
         do {
             let matches = try query.matches(in: tab.textView.string)
-            guard !matches.isEmpty else { findStatus.stringValue = "Совпадений нет"; NSSound.beep(); return }
+            guard !matches.isEmpty else { findStatus.stringValue = L("Совпадений нет"); NSSound.beep(); return }
             let range = tab.textView.selectedRange()
             let match: NSRange
             if backwards { match = matches.last(where: { $0.location < range.location }) ?? matches.last! }
             else { match = matches.first(where: { $0.location >= NSMaxRange(range) && !($0 == range) }) ?? matches.first! }
             tab.textView.setSelectedRange(match); tab.textView.scrollRangeToVisible(match)
-            findStatus.stringValue = "\((matches.firstIndex(of: match) ?? 0) + 1) из \(matches.count)"
-        } catch { findStatus.stringValue = "Ошибка Regex"; showError(error) }
+            findStatus.stringValue = L("\((matches.firstIndex(of: match) ?? 0) + 1) из \(matches.count)")
+        } catch { findStatus.stringValue = L("Ошибка Regex"); showError(error) }
     }
     @objc func replaceOne(_ sender: Any?) {
         guard let tab = current, !searchField.stringValue.isEmpty else { return }
@@ -437,14 +453,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             let count = try query.matches(in: tab.textView.string).count
             let replaced = try query.replacing(in: tab.textView.string, with: replaceField.stringValue)
             if count > 0 { tab.textView.insertText(replaced, replacementRange: NSRange(location: 0, length: (tab.textView.string as NSString).length)) }
-            findStatus.stringValue = "Заменено: \(count)"
+            findStatus.stringValue = L("Заменено: \(count)")
         } catch { showError(error) }
     }
     @objc func goToLine(_ sender: Any?) {
         guard let tab = current else { return }
-        let alert = NSAlert(); alert.messageText = "Перейти к строке"
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24)); field.stringValue = "1"; field.setAccessibilityLabel("Номер строки")
-        alert.accessoryView = field; alert.addButton(withTitle: "Перейти"); alert.addButton(withTitle: "Отмена")
+        let alert = NSAlert(); alert.messageText = L("Перейти к строке")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24)); field.stringValue = "1"; field.setAccessibilityLabel(L("Номер строки"))
+        alert.accessoryView = field; alert.addButton(withTitle: L("Перейти")); alert.addButton(withTitle: L("Отмена"))
         alert.window.initialFirstResponder = field
         if alert.runModal() == .alertFirstButtonReturn, let line = Int(field.stringValue), line > 0 {
             let range = NSRange(location: TextPosition.offset(ofLine: line, in: tab.textView.string), length: 0)
@@ -462,17 +478,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         if previewEnabled { editorSplit.setPosition(editorSplit.bounds.width * 0.5, ofDividerAt: 0) }
         current?.setWrap(wrap); refreshPreview()
     }
+    @objc func showTabList() {
+        if let tabListPanel { tabListPanel.makeKeyAndOrderFront(nil); filterTabList(); return }
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 440, height: 480), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        panel.title = L("Все вкладки…"); panel.isReleasedWhenClosed = false
+        tabListSearch.placeholderString = L("Поиск вкладки"); tabListSearch.target = self; tabListSearch.action = #selector(filterTabList)
+        tabListSearch.sendsSearchStringImmediately = true
+        tabListRows.orientation = .vertical; tabListRows.alignment = .leading; tabListRows.spacing = 4
+        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.documentView = tabListRows
+        let root = NSView(); panel.contentView = root
+        for view in [tabListSearch, scroll, tabListRows] { view.translatesAutoresizingMaskIntoConstraints = false }
+        root.addSubview(tabListSearch); root.addSubview(scroll)
+        NSLayoutConstraint.activate([
+            tabListSearch.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12), tabListSearch.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12), tabListSearch.topAnchor.constraint(equalTo: root.topAnchor, constant: 12),
+            scroll.topAnchor.constraint(equalTo: tabListSearch.bottomAnchor, constant: 10), scroll.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -12), scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12), scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12),
+            tabListRows.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor), tabListRows.topAnchor.constraint(equalTo: scroll.contentView.topAnchor), tabListRows.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor)
+        ])
+        tabListPanel = panel; filterTabList(); panel.center(); panel.makeKeyAndOrderFront(nil); panel.makeFirstResponder(tabListSearch)
+    }
+    @objc func filterTabList() {
+        tabListRows.arrangedSubviews.forEach { tabListRows.removeArrangedSubview($0); $0.removeFromSuperview() }
+        let query = tabListSearch.stringValue
+        for tab in tabs where query.isEmpty || (tab.url?.path ?? tab.snapshot.title).localizedCaseInsensitiveContains(query) {
+            let entry = button((tab.snapshot.id == selectedID ? "✓ " : "") + (tab.dirty ? "● " : "") + tab.snapshot.title, #selector(chooseListedTab(_:)))
+            entry.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString); entry.alignment = .left; entry.lineBreakMode = .byTruncatingMiddle
+            entry.toolTip = tab.url?.path ?? tab.snapshot.title
+            tabListRows.addArrangedSubview(entry); entry.widthAnchor.constraint(equalTo: tabListRows.widthAnchor).isActive = true
+        }
+    }
+    @objc func chooseListedTab(_ sender: NSButton) { selectTab(sender); tabListPanel?.orderOut(nil); window.makeKeyAndOrderFront(nil) }
+    @objc func useRussian() { setInterfaceLanguage("ru") }
+    @objc func useEnglish() { setInterfaceLanguage("en") }
+    func setInterfaceLanguage(_ language: String) {
+        UserDefaults.standard.set(language, forKey: "interfaceLanguage")
+        updater.invalidateLocalization(); SupportWindow.shared.invalidateLocalization(); tabListPanel?.close(); tabListPanel = nil
+        let oldWindow = window!
+        let frame = oldWindow.frame
+        makeMenu(); makeWindow(); window.setFrame(frame, display: true)
+        rebuildTabs(); if let tab = current { select(tab) }
+        oldWindow.delegate = nil; oldWindow.close()
+        window.makeKeyAndOrderFront(nil)
+    }
     @objc func checkForUpdates() { updater.check(manual: true) }
     @objc func updateSettings() { updater.showSettings() }
     @objc func supportDeveloper() { SupportWindow.shared.show() }
     @objc func about() {
-        let credits = NSMutableAttributedString(string: "Разработчик — ", attributes: [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.labelColor])
-        credits.append(NSAttributedString(string: "Илья (starscream001)", attributes: [.font: NSFont.systemFont(ofSize: 13), .link: URL(string: "https://github.com/starscream001")!]))
-        credits.append(NSAttributedString(string: "\nРепозиторий Notepad Mac", attributes: [.font: NSFont.systemFont(ofSize: 13), .link: UpdatePolicy.repositoryURL]))
-        credits.append(NSAttributedString(string: "\n\nНативный текстовый редактор для macOS.\nБесплатно · открытый исходный код · MIT.\nПоддержка разработчика добровольная.", attributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor]))
+        let credits = NSMutableAttributedString(string: L("Разработчик — "), attributes: [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.labelColor])
+        credits.append(NSAttributedString(string: L("Илья (starscream001)"), attributes: [.font: NSFont.systemFont(ofSize: 13), .link: URL(string: "https://github.com/starscream001")!]))
+        credits.append(NSAttributedString(string: L("\nРепозиторий Notepad Mac"), attributes: [.font: NSFont.systemFont(ofSize: 13), .link: UpdatePolicy.repositoryURL]))
+        credits.append(NSAttributedString(string: "\nTelegram: @Ilya_Manik", attributes: [.font: NSFont.systemFont(ofSize: 13), .link: URL(string: "https://t.me/Ilya_Manik")!]))
+        credits.append(NSAttributedString(string: L("\n\nНативный текстовый редактор для macOS.\nБесплатно · открытый исходный код · MIT.\nПоддержка разработчика добровольная."), attributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor]))
         NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: credits])
     }
-    func showError(_ error: Error) { let alert = NSAlert(error: error); alert.runModal() }
+    func showError(_ error: Error) { let alert = NSAlert(); alert.messageText = InterfaceLanguage.english ? "Could Not Complete the Action" : "Не удалось выполнить действие"; alert.informativeText = L(error.localizedDescription); alert.runModal() }
     func schedulePersistence() {
         persistenceWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.persist() }; persistenceWork = work
@@ -490,7 +548,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             try SessionStore.save(Session(tabs: snapshots, selected: selectedID), to: sessionURL)
             return true
         } catch {
-            if !didWarnPersistence { didWarnPersistence = true; showError(EditorError.message("Не удалось сохранить сессию: \(error.localizedDescription). Сохраните важные вкладки в файлы.")) }
+            if !didWarnPersistence { didWarnPersistence = true; showError(EditorError.message(L("Не удалось сохранить сессию: \(error.localizedDescription). Сохраните важные вкладки в файлы."))) }
             return false
         }
     }
@@ -516,15 +574,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             let backup = sessionURL.deletingPathExtension().appendingPathExtension("damaged-\(Int(Date().timeIntervalSince1970)).json")
             do { try FileManager.default.moveItem(at: sessionURL, to: backup) }
             catch { sessionWriteBlocked = true; didWarnPersistence = true; showError(error); return }
-            showError(EditorError.message("Сессия не прочитана. Исходная копия сохранена: \(backup.path)"))
+            showError(EditorError.message(L("Сессия не прочитана. Исходная копия сохранена: \(backup.path)")))
         }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if updater.isHandingOff { return .terminateNow } // Session was saved immediately before handoff.
         if persist() { return .terminateNow }
-        let alert = NSAlert(); alert.messageText = "Сессия не сохранена"
-        alert.informativeText = "Сохраните документы перед выходом, чтобы не потерять изменения."
-        alert.addButton(withTitle: "Вернуться"); alert.addButton(withTitle: "Выйти без восстановления")
+        let alert = NSAlert(); alert.messageText = L("Сессия не сохранена")
+        alert.informativeText = L("Сохраните документы перед выходом, чтобы не потерять изменения.")
+        alert.addButton(withTitle: L("Вернуться")); alert.addButton(withTitle: L("Выйти без восстановления"))
         return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { NSApp.terminate(nil); return false }

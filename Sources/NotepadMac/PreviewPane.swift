@@ -18,7 +18,7 @@ final class PreviewPane: NSObject, WKNavigationDelegate {
         web = WKWebView(frame: .zero, configuration: configuration)
         super.init()
         web.navigationDelegate = self
-        web.setAccessibilityLabel("Предпросмотр документа")
+        web.setAccessibilityLabel(L("Предпросмотр"))
         web.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(web)
         NSLayoutConstraint.activate([
@@ -50,14 +50,14 @@ final class PreviewPane: NSObject, WKNavigationDelegate {
     private func render(_ tab: EditorTab) {
         let source = tab.textView.string
         guard source.utf8.count <= 2_000_000 else {
-            show("<p>Предпросмотр доступен для документов до 2 МБ. Редактирование остаётся доступным.</p>")
+            show(InterfaceLanguage.english ? "<p>Preview is available for documents up to 2 MB. Editing remains available.</p>" : "<p>Предпросмотр доступен для документов до 2 МБ. Редактирование остаётся доступным.</p>")
             return
         }
         let ext = tab.url?.pathExtension.lowercased() ?? ""
         let markdown = tab.language == "Markdown"
         let html = ["html", "htm"].contains(ext) || (tab.snapshot.syntaxLanguage == "HTML / XML")
         guard markdown || html else {
-            show("<h2>Предпросмотр</h2><p>Откройте Markdown или HTML. Для новой вкладки выберите язык Markdown или HTML / XML внизу окна.</p>")
+            show(InterfaceLanguage.english ? "<h2>Preview</h2><p>Open Markdown or HTML, or choose Markdown / HTML syntax for a new tab in the status bar.</p>" : "<h2>Предпросмотр</h2><p>Откройте Markdown или HTML. Для новой вкладки выберите язык Markdown или HTML / XML внизу окна.</p>")
             return
         }
         let body: String

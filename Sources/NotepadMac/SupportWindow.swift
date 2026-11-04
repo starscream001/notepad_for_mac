@@ -17,7 +17,7 @@ private struct DonationConfiguration: Decodable {
 
 private final class QRCodeView: NSView {
     let code: CGImage
-    init(code: CGImage) { self.code = code; super.init(frame: .zero); setAccessibilityLabel("QR-код для поддержки разработчика через банк") }
+    init(code: CGImage) { self.code = code; super.init(frame: .zero); setAccessibilityLabel(L("QR-код для поддержки разработчика через банк")) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func draw(_ dirtyRect: NSRect) {
         NSColor.white.setFill(); bounds.fill()
@@ -32,6 +32,7 @@ final class SupportWindow: NSObject {
     static let shared = SupportWindow()
     private var panel: NSPanel?
     private var configuration: DonationConfiguration?
+    func invalidateLocalization() { panel?.close(); panel = nil }
     func show() {
         if let panel { panel.makeKeyAndOrderFront(nil); return }
         if let url = Bundle.main.url(forResource: "Donation", withExtension: "json"), let data = try? Data(contentsOf: url) {
@@ -41,13 +42,13 @@ final class SupportWindow: NSObject {
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 28, bottom: 24, right: 28)
         let icon = NSImageView(image: NSApp.applicationIconImage)
         icon.widthAnchor.constraint(equalToConstant: 72).isActive = true; icon.heightAnchor.constraint(equalToConstant: 72).isActive = true
-        let title = NSTextField(labelWithString: "Поддержать разработчика"); title.font = .systemFont(ofSize: 19, weight: .semibold)
-        let subtitle = NSTextField(wrappingLabelWithString: "Разработчик — Илья (starscream001).\nNotepad Mac бесплатный и открытый. Поддержка добровольная — все функции доступны каждому.")
+        let title = NSTextField(labelWithString: L("Поддержать разработчика")); title.font = .systemFont(ofSize: 19, weight: .semibold)
+        let subtitle = NSTextField(wrappingLabelWithString: L("Разработчик — Илья (starscream001).\nNotepad Mac бесплатный и открытый. Поддержка добровольная — все функции доступны каждому."))
         subtitle.alignment = .center; subtitle.widthAnchor.constraint(equalToConstant: 380).isActive = true
         [icon, title, subtitle].forEach(stack.addArrangedSubview)
         if let url = configuration?.url {
             if let recipient = configuration?.recipient, !recipient.isEmpty {
-                stack.addArrangedSubview(NSTextField(labelWithString: "Получатель: \(recipient)"))
+                stack.addArrangedSubview(NSTextField(labelWithString: L("Получатель: \(recipient)")))
             }
             let filter = CIFilter.qrCodeGenerator(); filter.message = Data(url.absoluteString.utf8); filter.correctionLevel = "M"
             if let output = filter.outputImage, let image = CIContext().createCGImage(output, from: output.extent) {
@@ -55,28 +56,28 @@ final class SupportWindow: NSObject {
                 qr.widthAnchor.constraint(equalToConstant: 248).isActive = true; qr.heightAnchor.constraint(equalToConstant: 248).isActive = true
                 stack.addArrangedSubview(qr)
             }
-            let hint = NSTextField(wrappingLabelWithString: "Отсканируйте QR телефоном. Сумму и перевод подтвердите в своём банковском приложении.")
+            let hint = NSTextField(wrappingLabelWithString: L("Отсканируйте QR телефоном. Сумму и перевод подтвердите в своём банковском приложении."))
             hint.font = .systemFont(ofSize: 12); hint.textColor = .secondaryLabelColor; hint.alignment = .center
             hint.widthAnchor.constraint(equalToConstant: 380).isActive = true; stack.addArrangedSubview(hint)
-            let buttons = NSStackView(views: [button("Открыть ссылку", #selector(openPayment)), button("Скопировать ссылку", #selector(copyPayment))]); buttons.spacing = 12
+            let buttons = NSStackView(views: [button(L("Открыть ссылку"), #selector(openPayment)), button(L("Скопировать ссылку"), #selector(copyPayment))]); buttons.spacing = 12
             stack.addArrangedSubview(buttons)
         }
         if let phone = configuration?.phone, !phone.isEmpty, let bank = configuration?.bank, !bank.isEmpty {
-            let phoneLabel = NSTextField(labelWithString: "СБП: \(phone) · \(bank)"); phoneLabel.isSelectable = true
+            let phoneLabel = NSTextField(labelWithString: L("СБП: \(phone) · \(bank)")); phoneLabel.isSelectable = true
             stack.addArrangedSubview(phoneLabel)
-            let hint = NSTextField(wrappingLabelWithString: "Перевод через СБП по номеру телефона. Выберите Ozon Банк и подтвердите перевод в своём банке.")
+            let hint = NSTextField(wrappingLabelWithString: L("Перевод через СБП по номеру телефона. Выберите Ozon Банк и подтвердите перевод в своём банке."))
             hint.alignment = .center; hint.font = .systemFont(ofSize: 12); hint.textColor = .secondaryLabelColor
             hint.widthAnchor.constraint(equalToConstant: 380).isActive = true
-            stack.addArrangedSubview(hint); stack.addArrangedSubview(button("Скопировать номер", #selector(copyPhone)))
+            stack.addArrangedSubview(hint); stack.addArrangedSubview(button(L("Скопировать номер"), #selector(copyPhone)))
         }
         let divider = NSBox(); divider.boxType = .separator; divider.widthAnchor.constraint(equalToConstant: 380).isActive = true
         stack.addArrangedSubview(divider)
-        let community = NSTextField(wrappingLabelWithString: "Можно поддержать проект отзывом, сообщением об ошибке или звездой на GitHub.")
+        let community = NSTextField(wrappingLabelWithString: L("Можно поддержать проект отзывом, сообщением об ошибке или звездой на GitHub."))
         community.alignment = .center; community.widthAnchor.constraint(equalToConstant: 380).isActive = true
         stack.addArrangedSubview(community)
-        stack.addArrangedSubview(button("Открыть проект на GitHub", #selector(openRepository)))
+        stack.addArrangedSubview(button(L("Открыть проект на GitHub"), #selector(openRepository)))
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 436, height: 300), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        panel.title = "Поддержка Notepad Mac"; panel.isReleasedWhenClosed = false; panel.contentView = stack
+        panel.title = L("Поддержка Notepad Mac"); panel.isReleasedWhenClosed = false; panel.contentView = stack
         panel.setContentSize(NSSize(width: 436, height: stack.fittingSize.height))
         self.panel = panel; panel.center(); panel.makeKeyAndOrderFront(nil)
     }
