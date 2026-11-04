@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${VERSION:-0.2.0}"
+VERSION="${VERSION:-$(cat VERSION)}"
 UNIVERSAL="${UNIVERSAL:-0}"
 if [[ "$UNIVERSAL" == "1" ]]; then
   swift build -c release --triple arm64-apple-macosx13.0 --product NotepadMac
@@ -19,6 +19,7 @@ APP="dist/Notepad Mac.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/NotepadMac" "$APP/Contents/MacOS/NotepadMac"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 swift scripts/icon.swift dist/AppIcon.iconset

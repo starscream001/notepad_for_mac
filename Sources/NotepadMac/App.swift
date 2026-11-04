@@ -404,7 +404,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
     }
     @objc func about() {
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: "0.2.0", .credits: NSAttributedString(string: "Нативный текстовый редактор для macOS.\nНезависимый проект, вдохновлённый Notepad++.")])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: NSAttributedString(string: "Нативный текстовый редактор для macOS.\nНезависимый проект, вдохновлённый Notepad++.")])
     }
     func showError(_ error: Error) { let alert = NSAlert(error: error); alert.runModal() }
     func schedulePersistence() {
