@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     var tabSurfaces: [UUID: TabSurface] = [:]
     var tabListPanel: NSPanel?
     let tabListSearch = NSSearchField()
-    let tabListRows = NSStackView()
+    let tabListRows = EditorListStack()
     var persistenceWork: DispatchWorkItem?
     var didWarnPersistence = false
     var sessionWriteBlocked = false
@@ -173,9 +173,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         searchField.target = self; searchField.action = #selector(findNext(_:))
         searchField.sendsSearchStringImmediately = false
         replaceField.placeholderString = L("Заменить на"); replaceField.setAccessibilityLabel(L("Заменить на"))
+        for field in [searchField, replaceField] {
+            field.font = .systemFont(ofSize: 13); field.controlSize = .regular
+            field.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            field.isBezeled = true; field.bezelStyle = .roundedBezel
+            field.backgroundColor = EditorPalette.editor; field.textColor = .labelColor
+        }
+        for toggle in [caseButton, regexButton] {
+            let state = toggle.state
+            toggle.cell = EditorButtonCell(textCell: toggle.title); toggle.setButtonType(.pushOnPushOff)
+            toggle.state = state; toggle.font = .systemFont(ofSize: 13)
+            toggle.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            toggle.setAccessibilityLabel(toggle.title)
+        }
         searchField.widthAnchor.constraint(equalToConstant: 220).isActive = true
         replaceField.widthAnchor.constraint(equalToConstant: 220).isActive = true
-        findStatus.font = .systemFont(ofSize: 11); findStatus.textColor = .secondaryLabelColor
+        findStatus.font = .systemFont(ofSize: 12); findStatus.textColor = .secondaryLabelColor
         findStack.orientation = .vertical; findStack.alignment = .leading; findStack.spacing = 0
         findStack.addArrangedSubview(row([searchField, caseButton, regexButton, button(L("Назад"), #selector(findPrevious(_:))), button(L("Далее"), #selector(findNext(_:))), button(L("Закрыть"), #selector(hideFind(_:)))]))
         findStack.addArrangedSubview(row([replaceField, button(L("Заменить"), #selector(replaceOne(_:))), button(L("Заменить всё"), #selector(replaceAll(_:))), findStatus]))
@@ -493,10 +506,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         if let tabListPanel { tabListPanel.makeKeyAndOrderFront(nil); filterTabList(); return }
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 440, height: 480), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = L("Все вкладки…"); panel.isReleasedWhenClosed = false
+        panel.minSize = NSSize(width: 360, height: 260); panel.backgroundColor = EditorPalette.chrome
         tabListSearch.placeholderString = L("Поиск вкладки"); tabListSearch.target = self; tabListSearch.action = #selector(filterTabList)
         tabListSearch.sendsSearchStringImmediately = true
+        tabListSearch.font = .systemFont(ofSize: 13); tabListSearch.controlSize = .regular
+        tabListSearch.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        tabListSearch.setAccessibilityLabel(L("Поиск вкладки"))
         tabListRows.orientation = .vertical; tabListRows.alignment = .leading; tabListRows.spacing = 4
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.documentView = tabListRows
+        scroll.drawsBackground = false
         let root = NSView(); panel.contentView = root
         for view in [tabListSearch, scroll, tabListRows] { view.translatesAutoresizingMaskIntoConstraints = false }
         root.addSubview(tabListSearch); root.addSubview(scroll)
@@ -512,9 +530,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let query = tabListSearch.stringValue
         for tab in tabs where query.isEmpty || (tab.url?.path ?? tab.snapshot.title).localizedCaseInsensitiveContains(query) {
             let entry = button((tab.snapshot.id == selectedID ? "✓ " : "") + (tab.dirty ? "● " : "") + tab.snapshot.title, #selector(chooseListedTab(_:)))
+            entry.setButtonType(.pushOnPushOff); entry.state = tab.snapshot.id == selectedID ? .on : .off
             entry.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString); entry.alignment = .left; entry.lineBreakMode = .byTruncatingMiddle
             entry.toolTip = tab.url?.path ?? tab.snapshot.title
             tabListRows.addArrangedSubview(entry); entry.widthAnchor.constraint(equalTo: tabListRows.widthAnchor).isActive = true
+        }
+        tabListPanel?.title = L("Все вкладки…") + " · \(tabListRows.arrangedSubviews.count) / \(tabs.count)"
+        if tabListRows.arrangedSubviews.isEmpty {
+            let empty = NSTextField(labelWithString: InterfaceLanguage.english ? "No matching tabs" : "Вкладки не найдены")
+            empty.font = .systemFont(ofSize: 13); empty.textColor = .secondaryLabelColor
+            tabListRows.addArrangedSubview(empty)
         }
     }
     @objc func chooseListedTab(_ sender: NSButton) { selectTab(sender); tabListPanel?.orderOut(nil); window.makeKeyAndOrderFront(nil) }

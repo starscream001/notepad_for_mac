@@ -22,7 +22,7 @@
 </p>
 <p align="center"><strong>macOS · Windows · Linux</strong> · Без входа в GitHub · Бесплатно</p>
 
-<img src="docs/assets/studio-070.jpg" width="100%" alt="Notepad 0.7.0: SQL, компактные кнопки Studio и нижний выбор палитры Ночной и золото.">
+<img src="docs/assets/studio-070.jpg" width="100%" alt="Notepad 0.7.1: SQL, компактные кнопки Studio и нижний выбор палитры Ночной и золото.">
 
 **Оформление в нижней панели.** Выберите светлую, тёмную или системную тему, затем палитру рядом: 14 светлых или 14 тёмных пар + Studio. Повторяющиеся пары объединены. Цвета меняют поверхности и акценты интерфейса; читаемый текст и подсветка кода сохраняются отдельно. [Все пары с HEX](docs/PALETTES.md).
 
@@ -37,9 +37,9 @@
 **Много вкладок.** Строка прокручивается горизонтально, выбранная вкладка появляется в видимой области. Кнопка **«Вкладки / Tabs»** открывает список с поиском по имени или пути; **⌘/Ctrl+Shift+A** — быстрый вызов. Проверен сценарий **120 документов** в обоих клиентах. Desktop поддерживает до 300 вкладок; объём доступной памяти зависит от файлов.
 
 
-В **0.7.0** — оформление **Studio**, одинаковая высота кнопок сверху и снизу, **28 цветовых схем** из подборки Алисы и форматирование **JSON / SQL** по команде. Mac остаётся нативным; Windows/Linux используют Electron и CodeMirror.
+В **0.7.1** также доработаны **«Вкладки» и «Найти»**: компактные поля, согласованные кнопки, выделение текущего документа, счётчик результатов и понятный пустой список. Базовый выпуск 0.7 добавил оформление **Studio**, одинаковая высота кнопок сверху и снизу, **28 цветовых схем** из подборки Алисы и форматирование **JSON / SQL** по команде. Mac остаётся нативным; Windows/Linux используют Electron и CodeMirror.
 
-[Изменения 0.7.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.0) · [История версий](CHANGELOG.md) · [План развития](docs/ROADMAP.md)
+[Изменения 0.7.1](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.1) · [История версий](CHANGELOG.md) · [План развития](docs/ROADMAP.md)
 
 
 <table>
@@ -75,8 +75,8 @@
 | Платформа | Готовое приложение | Установка |
 | --- | --- | --- |
 | **macOS 13+** · Intel / Apple Silicon | [Скачать ZIP](https://github.com/starscream001/notepad_for_mac/releases/latest/download/Notepad-Mac-universal.zip) | Распаковать → перенести в «Программы» |
-| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Windows-x64-Setup.exe) | Запустить → установить для себя |
-| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.0/Notepad-Desktop-0.7.0-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
+| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.1/Notepad-Desktop-0.7.1-Windows-x64-Setup.exe) | Запустить → установить для себя |
+| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.1/Notepad-Desktop-0.7.1-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.7.1/Notepad-Desktop-0.7.1-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
 
 Готовые пакеты не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
 
@@ -127,7 +127,7 @@ Finder может показывать имя приложения без рас
 
 **Первый переход с 0.1 / 0.2 на 0.3 — вручную:** скачайте ZIP и замените приложение через Finder после выхода через **⌘Q**. Начиная с 0.3, последующие версии можно устанавливать из редактора. Сессии прежних версий совместимы.
 
-[Что нового в 0.7.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
+[Что нового в 0.7.1](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.7.1) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
 
 <a id="formats"></a>
 

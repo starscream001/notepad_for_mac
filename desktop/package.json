@@ -1,8 +1,8 @@
 {
   "name": "notepad-desktop",
   "productName": "Notepad Desktop",
-  "version": "0.7.0",
-  "description": "Text, code and queries — desktop editor by Ilya",
+  "version": "0.7.1",
+  "description": "Text, code and queries \u2014 desktop editor by Ilya",
   "author": "Ilya (starscream001)",
   "license": "MIT",
   "main": "main.cjs",

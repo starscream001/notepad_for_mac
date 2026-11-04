@@ -91,3 +91,7 @@ final class TabSurface: NSView {
         NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 7, yRadius: 7).fill()
     }
 }
+
+final class EditorListStack: NSStackView {
+    override var isFlipped: Bool { true }
+}
