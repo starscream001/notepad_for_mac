@@ -7,7 +7,7 @@
 
 ### 1. Скачать приложение
 
-**[⬇ Скачать Notepad Mac для macOS](https://github.com/starscream001/notepad_for_mac/releases/download/latest/Notepad-Mac-universal.zip)**
+**[⬇ Скачать Notepad Mac для macOS](https://github.com/starscream001/notepad_for_mac/releases/download/latest/Notepad-Mac-universal.zip?download=1)**
 
 Скачивается файл **`Notepad-Mac-universal.zip`** — готовое приложение. Входить в GitHub, устанавливать Xcode или компилировать код не нужно.
 
