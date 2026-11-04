@@ -57,7 +57,31 @@ if(p){const mix=(a,b,t)=>'#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),1
 for(const [k,v]of Object.entries({'--bg':p.dark?mix(p.background,fg,.04):p.background,'--panel':mix(p.background,p.dark?fg:p.accent,p.dark?.09:.10),'--editor':p.background,'--text':fg,'--muted':mix(p.background,fg,.68),'--border':mix(p.background,fg,.22),'--accent':p.accent,'--hover':mix(p.background,p.accent,.22)}))style.setProperty(k,v);
 }
 document.body.classList.toggle('light',!dark());view?.dispatch({effects:themeSlot.reconfigure(dark()?oneDark:[])});refreshPreview();}
-async function checkUpdate(manual=true){try{const result=await call('update',manual);if(manual&&result.current)notice('Установлена последняя доступная версия для вашей ОС.');}catch(e){if(manual)notice(e.message);}}
+let updatePhase='idle',updateInstalling=false;
+function showUpdate(state){
+ updatePhase=state.phase;const dialog=$('update-dialog');if(!dialog.open)dialog.showModal();
+ $('update-title').textContent=(locale==='en'?'Update':'Обновление')+(state.version?' '+state.version:'');
+ const ready=state.phase==='ready',active=state.phase==='downloading';
+ $('update-progress').hidden=!active;$('update-progress').value=state.total?state.received/state.total:0;
+ $('update-status').textContent=ready?(locale==='en'?'SHA256 verified. Tabs will be preserved. Windows will open its installer.':'SHA256 проверен. Вкладки сохранятся. Windows откроет установщик.'):
+ active?`${locale==='en'?'Downloading':'Загрузка'}: ${Math.floor(100*(state.received||0)/(state.total||1))}%`:
+ state.phase==='error'?(locale==='en'?'Update failed: ':'Не удалось обновить: ')+tr(state.message):
+ (locale==='en'?'Download cancelled. Your documents are unchanged.':'Загрузка отменена. Документы не изменены.');
+ $('update-install').hidden=!ready;$('update-install').textContent=locale==='en'?'Install and Restart':'Установить и перезапустить';
+ $('update-cancel').textContent=active?(locale==='en'?'Cancel':'Отмена'):(locale==='en'?'Later / Close':'Позже / Закрыть');
+}
+api.onUpdate(showUpdate);
+$('update-cancel').onclick=async()=>{if(updatePhase==='downloading')await call('cancelUpdate');else $('update-dialog').close();};
+$('update-dialog').addEventListener('cancel',e=>{if(updatePhase==='downloading'){e.preventDefault();call('cancelUpdate').catch(e=>notice(e.message));}});
+$('update-install').onclick=async()=>{
+ updateInstalling=true;if(view)view.dom.inert=true;
+ $('update-install').disabled=true;
+ try{if(!await flush())throw Error(locale==='en'?'Session could not be saved. Installation cancelled.':'Не удалось сохранить сессию. Установка отменена.');await call('installUpdate');}
+ catch(e){$('update-status').textContent=tr(e.message);}
+ finally{updateInstalling=false;if(view)view.dom.inert=false;$('update-install').disabled=false;}
+};
+async function checkUpdate(manual=true){try{const result=await call('update',manual);if(result.ready)showUpdate({phase:'ready',version:result.ready});if(manual&&result.current)notice('Установлена последняя доступная версия для вашей ОС.');}catch(e){if(manual)notice(e.message);}}
+
 
 let formatting=false;
 async function formatDocument(){
@@ -82,7 +106,7 @@ async function formatDocument(){
 
 const actions={format:formatDocument,settings:()=>$('settings-dialog').showModal(),new:newTab,open,save:()=>save(false),'save-as':()=>save(true),close:()=>current()&&closeTab(selected),find:()=>view&&openSearchPanel(view),preview:togglePreview,about:()=>{$('settings-dialog').close();$('about-dialog').showModal();},update:()=>checkUpdate(true),flush,reload:async()=>{const data=await call('load');capture();for(const t of data.session.tabs){if(!tabs.some(x=>x.id===t.id))tabs.push(t);}select(data.session.selected||selected);}};
 for(const id of ['new','open','save','find','preview','about','format','settings'])$(id).onclick=actions[id];
-api.onCommand(command=>actions[command]?.());
+api.onCommand(command=>{if(!updateInstalling||command==='flush')actions[command]?.();});
 function listTabs(){
  const query=$('tab-filter').value.toLocaleLowerCase(),results=document.createDocumentFragment();let matches=0;
  for(const t of tabs){if(query&&!(t.path||t.title).toLocaleLowerCase().includes(query))continue;matches++;
@@ -116,5 +140,5 @@ window.addEventListener('online',()=>checkUpdate(false));
 function splitAt(percent){percent=Math.min(75,Math.max(25,percent));$('preview-pane').style.width=percent+'%';$('divider').setAttribute('aria-valuenow',String(Math.round(percent)));}
 $('divider').onpointerdown=event=>{$('divider').setPointerCapture(event.pointerId);$('divider').onpointermove=e=>{if(e.buttons!==1)return;const rect=$('workspace').getBoundingClientRect();splitAt(100*(rect.right-e.clientX)/rect.width);};};
 $('divider').onkeydown=e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();splitAt(Number($('divider').getAttribute('aria-valuenow'))+(e.key==='ArrowLeft'?5:-5));}};
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();formatDocument();return;}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='a'){e.preventDefault();$('tab-list').click();return;}if((e.ctrlKey||e.metaKey)&&e.key==='Tab'){e.preventDefault();const index=tabs.findIndex(t=>t.id===selected);select(tabs[(index+(e.shiftKey?-1:1)+tabs.length)%tabs.length].id);}});
+document.addEventListener('keydown',e=>{if(updateInstalling){e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();formatDocument();return;}if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='a'){e.preventDefault();$('tab-list').click();return;}if((e.ctrlKey||e.metaKey)&&e.key==='Tab'){e.preventDefault();const index=tabs.findIndex(t=>t.id===selected);select(tabs[(index+(e.shiftKey?-1:1)+tabs.length)%tabs.length].id);}});
 try{const data=await call('load');version=data.version;tabs=data.session.tabs||[];settings={...settings,...data.session.settings};locale=settings.locale==='en'?'en':'ru';localizeDOM(locale);renderSchemes();$('ui-language').value=locale;$('sql-dialect').value=settings.sqlDialect||'auto';selected=data.session.selected;$('version').textContent=version;$('theme').value=settings.theme;$('auto-update').checked=settings.autoUpdates;$('update-interval').value=String(settings.updateInterval);applyTheme();if(!tabs.length)newTab();else{selected=null;select(data.session.selected&&tabs.some(t=>t.id===data.session.selected)?data.session.selected:tabs[0].id);}setTimeout(()=>checkUpdate(false),3000);setInterval(()=>checkUpdate(false),600000);}catch(e){notice('Не удалось загрузить сессию: '+e.message);}

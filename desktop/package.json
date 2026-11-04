@@ -1,7 +1,7 @@
 {
   "name": "notepad-desktop",
   "productName": "Notepad Desktop",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Text, code and queries \u2014 desktop editor by Ilya",
   "author": "Ilya (starscream001)",
   "license": "MIT",
@@ -25,7 +25,8 @@
       "ui/**",
       "package.json",
       "LICENSE",
-      "assets/icon.png"
+      "assets/icon.png",
+      "updates.cjs"
     ],
     "asar": true,
     "win": {
@@ -44,7 +45,8 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
     },
     "linux": {
       "target": [

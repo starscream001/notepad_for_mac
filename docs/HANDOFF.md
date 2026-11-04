@@ -74,3 +74,9 @@ Desktop: Electron `app.getPath('userData')`, каталог `notepad-desktop`; �
 ## Патч 0.7.2
 
 Текущая версия 0.7.2. Отдельный About в верхней панели, Settings gear в footer обоих клиентов. Язык и SQL остаются в Settings, параметры документа — внизу. Resources/Palettes.json светлые сокращены до paper/sky/red (всегда белый фон, цвет кнопок/активной вкладки); все 14 dark оставлены как были (всего 17 схем + Studio). Studio в обеих темах. По последнему решению владельца peach/cream и остальные светлые фоны удалены. Публиковать каждый патч с README/CHANGELOG/notes, не заменять уже опубликованные бинарники.
+
+## Патч 0.7.3 — Windows updater
+
+Текущая версия 0.7.3. Владелец уточнил Windows: только там добавлена загрузка и запуск установщика без браузера. Linux остаётся ручным. `desktop/updates.cjs` — строгий candidate, HTTPS redirect allowlist, потоковый размер/SHA256, отмена/cleanup, повторная проверка перед install. `main.cjs` хранит preparedUpdate вне renderer, пишет Zone.Identifier, запускает shell.openPath после snapshot/persist и только затем завершает app. `preload` даёт ограниченные cancelUpdate/installUpdate/onUpdate. Renderer modal показывает progress/ready/errors; install сначала ждёт flush. NSIS runAfterFinish=true; без silent и обхода UAC/SmartScreen. Новых зависимостей нет. `updates.cjs` обязательно включён в builder.files.
+
+Переход <=0.7.2 → 0.7.3 один раз вручную, затем обновления из программы. Нет автоматического отката NSIS, не заявлять обратное. Ручное испытание install/restart на Windows обязательно по PLATFORM_TESTING; macOS не может подтвердить реальную работу мастера Windows. Node-тесты моделируют запуск (не исполняют EXE), проверяют повреждения/отмену/ошибку записи сессии. См. UPDATES.md.

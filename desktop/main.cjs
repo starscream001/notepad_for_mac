@@ -1,6 +1,9 @@
 const {app,BrowserWindow,Menu,dialog,ipcMain,shell,clipboard,session}=require('electron');
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {decode,encode,fingerprint,atomicWrite,newer,assetFor,MAX_BYTES}=require('./core.cjs');
+const updates=require('./updates.cjs');
+let updateController=null,preparedUpdate=null,installingUpdate=false;
+const updateState=value=>{if(win&&!win.isDestroyed())win.webContents.send('update-state',value);};
 const en=()=>model.settings?.locale==='en';
 const tr=(ru,english)=>en()?english:ru;
 const REPO='https://github.com/starscream001/notepad_for_mac';
@@ -60,10 +63,37 @@ handler('update',async manual=>{
     if(!newer(release.tag_name,app.getVersion())||release.draft||release.prerelease)return {current:true};
     const version=release.tag_name.replace(/^v/,'');const asset=release.assets?.find(a=>a.name===assetFor(process.platform,version));
     if(!asset)return {current:true};
-    const result=await dialog.showMessageBox(win,{type:'info',message:en()?`Version ${version} is available`:`Доступна версия ${version}`,detail:'Откроется страница GitHub с файлами для вашей ОС. Сохраните работу, завершите приложение и установите новую версию. Автоматическая замена Windows/Linux запланирована следующим этапом.',buttons:[tr('Открыть релиз','Open Release'),tr('Позже','Later')],defaultId:0,cancelId:1});
+    if(process.platform==='win32'){
+      const item=updates.candidate(release,app.getVersion());
+      if(preparedUpdate?.item.version===version){await updates.verified(preparedUpdate.file,preparedUpdate.item);updateState({phase:'ready',version});return {ready:version};}
+      const result=await dialog.showMessageBox(win,{type:'info',message:en()?`Version ${version} is available`:`Доступна версия ${version}`,detail:tr('Скачать установщик внутри приложения? После проверки SHA256 можно установить обновление. Вкладки сохранятся перед выходом.','Download the installer inside the app? After SHA256 verification you can install the update. Tabs are preserved before quitting.'),buttons:[tr('Скачать обновление','Download Update'),tr('Позже','Later')],defaultId:0,cancelId:1});
+      if(result.response!==0)return {available:version};
+      updateController=new AbortController();const timeout=setTimeout(()=>updateController?.abort(new Error("Update download timed out.")),10*60*1000);
+      updateState({phase:'downloading',version,received:0,total:item.size});let lastProgress=0;
+      try{
+        const file=await updates.download(item,path.join(app.getPath('userData'),'Updates'),{signal:updateController.signal,onProgress:(received,total)=>{if(Date.now()-lastProgress>100||received===total){lastProgress=Date.now();updateState({phase:'downloading',version,received,total});}}});
+        // Preserve Windows Internet-zone checks for an executable downloaded outside a browser.
+        try{await fs.promises.writeFile(file+':Zone.Identifier','[ZoneTransfer]\r\nZoneId=3\r\nHostUrl='+item.url+'\r\n');}
+        catch(error){await fs.promises.rm(path.dirname(file),{recursive:true,force:true});throw error;}
+        preparedUpdate={item,file};updateState({phase:'ready',version});return {ready:version};
+      }catch(error){if(updateController.signal.aborted&&updateController.signal.reason?.name==='AbortError'){updateState({phase:'cancelled'});return {cancelled:true};}updateState({phase:'error',message:error.message});throw error;}
+      finally{clearTimeout(timeout);updateController=null;}
+    }
+    const result=await dialog.showMessageBox(win,{type:'info',message:en()?`Version ${version} is available`:`Доступна версия ${version}`,detail:tr('Для Linux пока используется установка со страницы релиза.','Linux still uses installation from the release page.'),buttons:[tr('Открыть релиз','Open Release'),tr('Позже','Later')],defaultId:0,cancelId:1});
     if(result.response===0)await shell.openExternal(REPO+'/releases/tag/v'+version);return {available:version};
   }finally{checking=false;}
 });
+handler('cancel-update',()=>{updateController?.abort();return true;});
+handler('install-update',async()=>{
+  if(process.platform!=='win32'||!app.isPackaged||!preparedUpdate||updateController||installingUpdate)throw Error('No verified update is ready to install.');
+  installingUpdate=true;
+  try{
+    // Renderer flush must succeed before this handler; persist again before launch.
+    await updates.install(preparedUpdate,{save:persist,open:file=>shell.openPath(file),quit:()=>{allowClose=true;app.quit();}});
+    return true;
+  }finally{installingUpdate=false;}
+});
+app.on('before-quit',()=>updateController?.abort());
 if(!app.requestSingleInstanceLock())app.quit();
 else {
  app.on('second-instance',(_event,argv)=>{if(win){win.show();win.focus();for(const arg of argv.slice(1)){if(!arg.startsWith('-')&&fs.existsSync(arg)&&fs.statSync(arg).isFile()){try{readFile(arg);command('reload');}catch(error){dialog.showErrorBox('Не удалось открыть',error.message);}}}}});
