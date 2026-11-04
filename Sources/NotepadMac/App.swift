@@ -3,6 +3,7 @@ import NotepadCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextViewDelegate {
     var window: NSWindow!
+    lazy var updater = AppUpdater(app: self)
     var tabs: [EditorTab] = []
     var selectedID: UUID?
     var current: EditorTab? { tabs.first { $0.snapshot.id == selectedID } }
@@ -45,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
         if tabs.isEmpty { newDocument(nil) }
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        updater.start()
 
     }
 
@@ -60,6 +62,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
         let app = submenu("Notepad Mac")
         item(app, "О Notepad Mac", #selector(about))
+        item(app, "Проверить обновления…", #selector(checkForUpdates))
+        item(app, "Настройки обновлений…", #selector(updateSettings))
+        item(app, "Поддержать разработчика…", #selector(supportDeveloper))
         app.addItem(.separator())
         item(app, "Скрыть Notepad Mac", #selector(NSApplication.hide(_:)), "h")
         item(app, "Завершить Notepad Mac", #selector(NSApplication.terminate(_:)), "q")
@@ -403,8 +408,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             tab.textView.setSelectedRange(range); tab.textView.scrollRangeToVisible(range); window.makeFirstResponder(tab.textView)
         }
     }
+    @objc func checkForUpdates() { updater.check(manual: true) }
+    @objc func updateSettings() { updater.showSettings() }
+    @objc func supportDeveloper() { SupportWindow.shared.show() }
     @objc func about() {
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: NSAttributedString(string: "Нативный текстовый редактор для macOS.\nНезависимый проект, вдохновлённый Notepad++.")])
+        let credits = NSMutableAttributedString(string: "Разработчик — ", attributes: [.font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.labelColor])
+        credits.append(NSAttributedString(string: "Илья (starscream001)", attributes: [.font: NSFont.systemFont(ofSize: 13), .link: URL(string: "https://github.com/starscream001")!]))
+        credits.append(NSAttributedString(string: "\nРепозиторий Notepad Mac", attributes: [.font: NSFont.systemFont(ofSize: 13), .link: UpdatePolicy.repositoryURL]))
+        credits.append(NSAttributedString(string: "\n\nНативный текстовый редактор для macOS.\nБесплатно · открытый исходный код · MIT.\nПоддержка разработчика добровольная.", attributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor]))
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Notepad Mac", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development", .credits: credits])
     }
     func showError(_ error: Error) { let alert = NSAlert(error: error); alert.runModal() }
     func schedulePersistence() {
@@ -454,6 +466,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if updater.isHandingOff { return .terminateNow } // Session was saved immediately before handoff.
         if persist() { return .terminateNow }
         let alert = NSAlert(); alert.messageText = "Сессия не сохранена"
         alert.informativeText = "Сохраните документы перед выходом, чтобы не потерять изменения."

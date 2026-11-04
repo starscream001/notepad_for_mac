@@ -111,7 +111,11 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
     do { _ = try expression(); CheckState.failures += 1; print("FAIL \(file):\(line): expected an error") } catch {}
 }
 @main struct CoreChecks {
-    static func main() throws {
+    static func main() async {
+        do { try await run() }
+        catch { print("FAIL: \(error.localizedDescription)"); exit(1) }
+    }
+    static func run() async throws {
         let tests = EditorCoreTests()
         try tests.testRoundTripAllEncodingsAndLineEndings()
         tests.testRejectsInvalidUTF8AndBinary()
@@ -125,7 +129,19 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         tests.testKafkaKeywordsAndFunctions()
         tests.testDollarQuotesAndUnicodeQuery()
         try tests.testSessionRemembersLanguageAndReadsOlderSessions()
+        let updates = UpdateTests()
+        updates.testVersionOrdering()
+        updates.testSchedule()
+        try updates.testStableReleasesOnly()
+        try updates.testUntrustedAssetsRejected()
+        try updates.testDigestAndSize()
+        try updates.testArchiveTraversalRejected()
+        try updates.testTransactionalInstallAndRollback()
+        try updates.testValidationAndRenameFailureKeepOriginal()
+        try updates.testConfirmRemovesBackupOnlyAfterSuccess()
+        try updates.testForeignInstallTicketRejected()
+        if CommandLine.arguments.contains("--network") { try await updates.testLiveGitHubTransport() }
         guard CheckState.failures == 0 else { exit(1) }
-        print("12 checks passed (including all 12 encoding / line-ending combinations).")
+        print("22 checks passed (including all 12 encoding / line-ending combinations).")
     }
 }

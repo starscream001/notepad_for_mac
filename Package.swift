@@ -8,6 +8,7 @@ let package = Package(
     targets: [
         .target(name: "NotepadCore"),
         .executableTarget(name: "NotepadMac", dependencies: ["NotepadCore"]),
+        .executableTarget(name: "NotepadUpdater", dependencies: ["NotepadCore"]),
         .executableTarget(name: "CoreChecks", dependencies: ["NotepadCore"], path: "Tests/NotepadCoreTests")
     ]
 )

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="410" viewBox="0 0 1400 410" role="img" aria-label="Notepad Mac: текст, код и запросы">
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#181B38"/><stop offset="1" stop-color="#101321"/></linearGradient></defs>
+  <rect width="1400" height="410" rx="30" fill="url(#bg)"/>
+  <path d="M0 340H1400M900 0V410" stroke="#2D304D" stroke-width="1"/>
+  <circle cx="1300" cy="50" r="172" fill="#EC8D40" opacity=".05"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif">
+    <rect x="58" y="45" width="210" height="35" rx="17.5" fill="#292D4A"/>
+    <text x="77" y="68" font-size="14" font-weight="600" letter-spacing="1.6" fill="#F7BE8E">MACOS · OPEN SOURCE</text>
+    <text x="58" y="157" font-size="68" font-weight="700" letter-spacing="-2" fill="#F7F6F3">Текст. Код.</text>
+    <text x="58" y="231" font-size="68" font-weight="700" letter-spacing="-2" fill="#F4A36B">Запросы.</text>
+    <text x="61" y="285" font-size="23" fill="#CDD0E0">Нативный редактор. Привычные вкладки.</text>
+    <text x="60" y="378" font-size="17" fill="#CBCFE0">SQL / ksqlDB</text>
+    <circle cx="213" cy="372" r="3" fill="#EC8D40"/>
+    <text x="235" y="378" font-size="17" fill="#CBCFE0">Восстановление сессии</text>
+    <circle cx="466" cy="372" r="3" fill="#EC8D40"/>
+    <text x="488" y="378" font-size="17" fill="#CBCFE0">Обновления внутри</text>
+    <text x="1180" y="378" font-size="15" letter-spacing="2" fill="#F4A36B">NOTEPAD MAC</text>
+  </g>
+  <g transform="translate(791 51)">
+    <rect x="16" y="17" width="540" height="264" rx="17" fill="#070A14" opacity=".35"/>
+    <rect width="540" height="264" rx="17" fill="#20243B" stroke="#424761"/>
+    <path d="M0 45H540" stroke="#424761"/>
+    <circle cx="22" cy="23" r="6" fill="#EE7768"/><circle cx="43" cy="23" r="6" fill="#E9BB64"/><circle cx="64" cy="23" r="6" fill="#7ABB91"/>
+    <rect x="103" y="9" width="133" height="29" rx="7" fill="#333854"/>
+    <text x="121" y="29" font-family="Arial,sans-serif" font-size="13" fill="#F1F1F7">stream.ksql</text>
+    <text x="266" y="29" font-family="Arial,sans-serif" font-size="13" fill="#BEC3D9">query.sql</text>
+    <g font-family="Menlo,Consolas,monospace" font-size="20">
+      <text x="27" y="88" fill="#9BA3BF">-- keep your flow</text>
+      <text x="27" y="125" fill="#C8A5F3">SELECT <tspan fill="#F4F3F7">customer_id,</tspan></text>
+      <text x="54" y="157" fill="#A3C1F6">SUM<tspan fill="#F4F3F7">(amount) </tspan><tspan fill="#C8A5F3">AS </tspan><tspan fill="#F4F3F7">total</tspan></text>
+      <text x="27" y="189" fill="#C8A5F3">FROM <tspan fill="#F4F3F7">orders</tspan></text>
+      <text x="27" y="221" fill="#C8A5F3">EMIT CHANGES<tspan fill="#F4F3F7">;</tspan></text>
+    </g>
+    <rect x="420" y="213" width="98" height="31" rx="8" fill="#3C3B4E"/>
+    <text x="435" y="234" font-family="Arial,sans-serif" font-size="13" fill="#F7BE8E">UTF-8 · LF</text>
+  </g>
+</svg>

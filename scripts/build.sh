@@ -5,25 +5,32 @@ VERSION="${VERSION:-$(cat VERSION)}"
 UNIVERSAL="${UNIVERSAL:-0}"
 if [[ "$UNIVERSAL" == "1" ]]; then
   swift build -c release --triple arm64-apple-macosx13.0 --product NotepadMac
+  swift build -c release --triple arm64-apple-macosx13.0 --product NotepadUpdater
   ARM_DIR="$(swift build -c release --triple arm64-apple-macosx13.0 --show-bin-path)"
   swift build -c release --triple x86_64-apple-macosx13.0 --product NotepadMac
+  swift build -c release --triple x86_64-apple-macosx13.0 --product NotepadUpdater
   INTEL_DIR="$(swift build -c release --triple x86_64-apple-macosx13.0 --show-bin-path)"
   mkdir -p dist/universal
   lipo -create "$ARM_DIR/NotepadMac" "$INTEL_DIR/NotepadMac" -output dist/universal/NotepadMac
+  lipo -create "$ARM_DIR/NotepadUpdater" "$INTEL_DIR/NotepadUpdater" -output dist/universal/NotepadUpdater
   BIN_DIR=dist/universal
 else
   swift build -c release --product NotepadMac
+  swift build -c release --product NotepadUpdater
   BIN_DIR="$(swift build -c release --show-bin-path)"
 fi
 APP="dist/Notepad Mac.app"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Helpers"
 cp "$BIN_DIR/NotepadMac" "$APP/Contents/MacOS/NotepadMac"
+cp "$BIN_DIR/NotepadUpdater" "$APP/Contents/Helpers/NotepadUpdater"
+cp Resources/Donation.json "$APP/Contents/Resources/Donation.json"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP/Contents/Info.plist"
 swift scripts/icon.swift dist/AppIcon.iconset
 iconutil -c icns dist/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
+codesign --force --sign - "$APP/Contents/Helpers/NotepadUpdater"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 ARCH="$(uname -m)"
