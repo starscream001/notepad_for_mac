@@ -114,6 +114,16 @@ final class EditorTab {
 }
 
 enum Syntax {
+    static func color(_ name: String, light: (CGFloat, CGFloat, CGFloat), dark: (CGFloat, CGFloat, CGFloat)) -> NSColor {
+        NSColor(name: NSColor.Name(name)) { appearance in
+            let rgb = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
+        }
+    }
+    static let numberColor = color("SyntaxNumber", light: (0.55, 0.30, 0.04), dark: (0.95, 0.73, 0.43))
+    static let keywordColor = color("SyntaxKeyword", light: (0.44, 0.18, 0.65), dark: (0.82, 0.64, 0.95))
+    static let stringColor = color("SyntaxString", light: (0.13, 0.44, 0.23), dark: (0.55, 0.84, 0.63))
+    static let markupColor = color("SyntaxMarkup", light: (0.14, 0.35, 0.65), dark: (0.54, 0.71, 0.97))
     static func language(for ext: String) -> String {
         switch ext.lowercased() {
         case "swift": return "Swift"
@@ -140,12 +150,12 @@ enum Syntax {
         // Keep very large documents responsive; basic editing still works.
         guard full.length < 500_000, language != "Обычный текст" else { return }
         var rules: [(String, NSColor)] = [
-            (#"\b\d+(?:\.\d+)?\b"#, .systemOrange),
-            (#"\b(?:let|var|const|func|function|class|struct|enum|protocol|extension|import|from|return|if|else|for|while|in|do|try|catch|throw|throws|async|await|public|private|static|final|override|guard|switch|case|break|continue|def|lambda|with|as|pass|yield|None|True|False|true|false|null|nil|new|this|self|typeof|interface|export|default|type|void|int|float|double|char|bool|include)\b"#, .systemPurple),
-            (#""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`"#, .systemGreen)
+            (#"\b\d+(?:\.\d+)?\b"#, numberColor),
+            (#"\b(?:let|var|const|func|function|class|struct|enum|protocol|extension|import|from|return|if|else|for|while|in|do|try|catch|throw|throws|async|await|public|private|static|final|override|guard|switch|case|break|continue|def|lambda|with|as|pass|yield|None|True|False|true|false|null|nil|new|this|self|typeof|interface|export|default|type|void|int|float|double|char|bool|include)\b"#, keywordColor),
+            (#""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`"#, stringColor)
         ]
-        if ["HTML / XML"].contains(language) { rules.insert((#"</?[\w:-]+|/?>"#, .systemBlue), at: 0) }
-        if language == "Markdown" { rules.append((#"(?m)^#{1,6}\s.*$|\*\*[^\n]+?\*\*"#, .systemBlue)) }
+        if ["HTML / XML"].contains(language) { rules.insert((#"</?[\w:-]+|/?>"#, markupColor), at: 0) }
+        if language == "Markdown" { rules.append((#"(?m)^#{1,6}\s.*$|\*\*[^\n]+?\*\*"#, markupColor)) }
         if ["Python", "Shell", "YAML"].contains(language) { rules.append((#"(?m)#.*$"#, .secondaryLabelColor)) }
         else if language == "HTML / XML" { rules.append((#"<!--[\s\S]*?-->"#, .secondaryLabelColor)) }
         else if language != "JSON" { rules.append((#"//[^\n]*|/\*[\s\S]*?\*/"#, .secondaryLabelColor)) }

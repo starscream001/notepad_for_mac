@@ -29,5 +29,5 @@ ARCH="$(uname -m)"
 if [[ "$UNIVERSAL" == "1" ]]; then ARCH=universal; fi
 ARCHIVE="dist/Notepad-Mac-${VERSION}-${ARCH}.zip"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ARCHIVE"
-shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+(cd dist && shasum -a 256 "$(basename "$ARCHIVE")") > "$ARCHIVE.sha256"
 printf 'Application: %s\nArchive: %s\n' "$APP" "$ARCHIVE"
