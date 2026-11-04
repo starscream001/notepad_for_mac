@@ -3,3 +3,9 @@ dist/
 .DS_Store
 *.xcodeproj/
 .swiftpm/
+
+# Cross-platform desktop client
+desktop/node_modules/
+desktop/ui/
+desktop/release/
+desktop/LICENSE

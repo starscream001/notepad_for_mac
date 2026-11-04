@@ -34,7 +34,16 @@ publish_version() {
   mkdir -p "$stage"
   cp "$source" "$stage/Notepad-Mac-universal.zip"
   (cd "$stage" && sha256sum Notepad-Mac-universal.zip > Notepad-Mac-universal.zip.sha256)
-  retry gh release upload "v$version" "$stage/Notepad-Mac-universal.zip" "$stage/Notepad-Mac-universal.zip.sha256" --clobber
+  local extras=() file
+  if [[ "$newest" == "true" ]]; then
+    for file in dist/*.exe dist/*.AppImage dist/*.deb; do
+      [[ -f "$file" ]] || continue
+      cp "$file" "$stage/"
+      (cd "$stage" && sha256sum "$(basename "$file")" > "$(basename "$file").sha256")
+      extras+=("$stage/$(basename "$file")" "$stage/$(basename "$file").sha256")
+    done
+  fi
+  retry gh release upload "v$version" "$stage/Notepad-Mac-universal.zip" "$stage/Notepad-Mac-universal.zip.sha256" "${extras[@]}" --clobber
   retry gh release edit "v$version" --title "Notepad Mac $version" --notes-file "$notes" --draft=false --prerelease=false --latest="$newest"
 }
 # Register the original tested 0.1 build once, using its original source revision

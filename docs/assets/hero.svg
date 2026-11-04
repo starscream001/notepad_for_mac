@@ -5,16 +5,16 @@
   <circle cx="1300" cy="50" r="172" fill="#EC8D40" opacity=".05"/>
   <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif">
     <rect x="58" y="45" width="210" height="35" rx="17.5" fill="#292D4A"/>
-    <text x="77" y="68" font-size="14" font-weight="600" letter-spacing="1.6" fill="#F7BE8E">MACOS · OPEN SOURCE</text>
+    <text x="77" y="68" font-size="14" font-weight="600" letter-spacing="1.6" fill="#F7BE8E">OPEN SOURCE</text>
     <text x="58" y="157" font-size="68" font-weight="700" letter-spacing="-2" fill="#F7F6F3">Текст. Код.</text>
     <text x="58" y="231" font-size="68" font-weight="700" letter-spacing="-2" fill="#F4A36B">Запросы.</text>
-    <text x="61" y="285" font-size="23" fill="#CDD0E0">Нативный редактор. Привычные вкладки.</text>
+    <text x="61" y="285" font-size="23" fill="#CDD0E0">Ваш текст. На любом десктопе.</text>
     <text x="60" y="378" font-size="17" fill="#CBCFE0">SQL / ksqlDB</text>
     <circle cx="213" cy="372" r="3" fill="#EC8D40"/>
     <text x="235" y="378" font-size="17" fill="#CBCFE0">Восстановление сессии</text>
     <circle cx="466" cy="372" r="3" fill="#EC8D40"/>
-    <text x="488" y="378" font-size="17" fill="#CBCFE0">Обновления внутри</text>
-    <text x="1180" y="378" font-size="15" letter-spacing="2" fill="#F4A36B">NOTEPAD MAC</text>
+    <text x="488" y="378" font-size="17" fill="#CBCFE0">Markdown / HTML</text>
+    <text x="1180" y="378" font-size="15" letter-spacing="2" fill="#F4A36B">NOTEPAD</text>
   </g>
   <g transform="translate(791 51)">
     <rect x="16" y="17" width="540" height="264" rx="17" fill="#070A14" opacity=".35"/>

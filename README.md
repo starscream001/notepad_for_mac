@@ -1,12 +1,13 @@
 <p align="center">
   <img src="Resources/AppIcon.png" width="76" height="76" alt="Иконка Notepad Mac — лис-перо">
 </p>
-<h1 align="center">Notepad Mac</h1>
+<h1 align="center">Notepad</h1>
+<p align="center"><strong>Текстовый редактор для macOS, Windows и Linux</strong></p>
 <p align="center">
-  <a href="#install">Установка</a> · <a href="#features">Возможности</a> · <a href="#updates">Обновления</a> · <a href="#formats">Форматы</a> · <a href="#support">Поддержать</a>
+  <a href="#install">Установка</a> · <a href="#features">Возможности</a> · <a href="#updates">Обновления</a> · <a href="#formats">Форматы</a> · <a href="docs/ROADMAP.md">Дорожная карта</a> · <a href="#support">Поддержать</a>
 </p>
 
-<img src="docs/assets/hero.svg" width="100%" alt="Текст. Код. Запросы. Нативный редактор macOS с SQL, ksqlDB, восстановлением вкладок и обновлениями внутри приложения.">
+<img src="docs/assets/hero.svg" width="100%" alt="Текст. Код. Запросы. Редактор для macOS, Windows и Linux: SQL, ksqlDB, восстановление вкладок и предпросмотр Markdown/HTML.">
 
 <p align="center">
   <a href="https://github.com/starscream001/notepad_for_mac/releases/latest"><img src="https://img.shields.io/github/v/release/starscream001/notepad_for_mac?display_name=tag&amp;color=373475&amp;cacheSeconds=60" alt="Последняя стабильная версия"></a>
@@ -19,7 +20,7 @@
   <a href="https://github.com/starscream001/notepad_for_mac/releases/latest/download/Notepad-Mac-universal.zip"><img src="https://img.shields.io/badge/Скачать_для_Mac-EC8D40?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Скачать Notepad Mac"></a>
   <a href="https://github.com/starscream001/notepad_for_mac/releases"><img src="https://img.shields.io/badge/Все_версии-252A48?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Все версии на GitHub"></a>
 </p>
-<p align="center"><strong>Intel + Apple Silicon</strong> · Один архив · Без входа в GitHub · Бесплатно</p>
+<p align="center"><strong>macOS · Windows · Linux</strong> · Без входа в GitHub · Бесплатно</p>
 
 <img src="docs/assets/editor-current.jpg" width="100%" alt="Notepad Mac: аккуратные вкладки, редактор Markdown слева и предпросмотр справа.">
 
@@ -27,14 +28,16 @@
 
 ## Рабочая вкладка — без лишнего
 
-В **0.5** — цельные вкладки с крестиками внутри, скруглённые кнопки и отдельная область номеров строк. Единые отступы и компактная строка состояния.
+В **0.6** добавлены **Windows и Linux**. Mac остаётся нативным; новый Desktop-клиент использует CodeMirror. Единый визуальный стиль, вкладки сверху и предпросмотр справа.
+
+[Изменения 0.6.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.6.0) · [История версий](CHANGELOG.md) · [План развития](docs/ROADMAP.md)
 
 
 <table>
 <tr>
 <td width="50%" valign="top">
 <h3>Текст и код</h3>
-<p>Вкладки сверху, номера строк, автоотступы, перенос строк и привычные сочетания клавиш macOS. Открывайте несколько файлов и переключайтесь между ними.</p>
+<p>Вкладки сверху, номера строк, автоотступы, перенос строк и привычные сочетания клавиш вашей ОС. Открывайте несколько файлов и переключайтесь между ними.</p>
 </td>
 <td width="50%" valign="top">
 <h3>SQL и Kafka / ksqlDB</h3>
@@ -53,12 +56,22 @@
 </tr>
 </table>
 
-Запись файлов атомарная. Перед перезаписью документа, изменённого другой программой, редактор предупредит. Текст документов остаётся на вашем Mac.
+Запись файлов атомарная. Перед перезаписью документа, изменённого другой программой, редактор предупредит. Текст документов остаётся на вашем компьютере.
 
 <a id="install"></a>
 <a id="установить-на-mac"></a>
 
-## От скачивания до первой вкладки
+## Выберите свою платформу
+
+| Платформа | Готовое приложение | Установка |
+| --- | --- | --- |
+| **macOS 13+** · Intel / Apple Silicon | [Скачать ZIP](https://github.com/starscream001/notepad_for_mac/releases/latest/download/Notepad-Mac-universal.zip) | Распаковать → перенести в «Программы» |
+| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Windows-x64-Setup.exe) | Запустить → установить для себя |
+| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.6.0/Notepad-Desktop-0.6.0-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
+
+Готовые пакеты не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
+
+### Установка на Mac
 
 <img src="docs/assets/install.svg" width="100%" alt="1. Скачать ZIP без входа в GitHub. 2. Распаковать двойным нажатием в Finder. 3. Перетащить приложение в Программы и запустить.">
 
@@ -86,7 +99,7 @@ Finder может показывать имя приложения без рас
 
 <a id="updates"></a>
 
-## Новая версия — прямо в приложении
+## Обновляйтесь без поисков
 
 <table>
 <tr>
@@ -105,9 +118,11 @@ Finder может показывать имя приложения без рас
 
 **Первый переход с 0.1 / 0.2 на 0.3 — вручную:** скачайте ZIP и замените приложение через Finder после выхода через **⌘Q**. Начиная с 0.3, последующие версии можно устанавливать из редактора. Сессии прежних версий совместимы.
 
-[Что нового в 0.5.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.5.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
+[Что нового в 0.6.0](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.6.0) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
 
 <a id="formats"></a>
+
+**Windows/Linux:** меню «Помощь → Проверить обновления» или кнопка в «О проекте». Проверка также работает при запуске и по расписанию (6 ч / сутки / неделя). Новый установщик скачивается со страницы Release и запускается вручную. Установка внутри приложения сейчас реализована в нативном Mac-клиенте.
 
 ## Предпросмотр Markdown и HTML
 
@@ -119,6 +134,8 @@ Finder может показывать имя приложения без рас
 Скрипты, формы, внешние ресурсы и локальные файлы из HTML не загружаются. Ссылки открываются в браузере. Предел предпросмотра — 2 МБ.
 
 ## Файлы, с которыми вы работаете
+
+Ниже — полный набор подсветки **нативного Mac-клиента**. В **Windows/Linux 0.6** доступны текст, SQL/ksqlDB, Markdown, HTML, JavaScript/TypeScript, Python, JSON и CSS. Сближение возможностей запланировано в [дорожной карте](docs/ROADMAP.md).
 
 Открывайте обычные текстовые файлы с любыми расширениями: `.txt`, `.log`, `.csv`, `.ini` и другие. Подсветка предусмотрена для:
 
@@ -237,5 +254,9 @@ GitHub Actions запускает проверки и universal-сборку. Н
 
 ---
 
-<p align="center">Notepad Mac · macOS 13+ · Intel + Apple Silicon · <a href="LICENSE">MIT</a></p>
+<p align="center">Notepad · macOS / Windows / Linux · <a href="LICENSE">MIT</a></p>
 <p align="center">Независимый проект, вдохновлённый Notepad++. Интерфейс и иконка — собственные.</p>
+
+## Продолжить разработку на другом компьютере
+
+Начните с [AGENTS.md](AGENTS.md), затем [HANDOFF](docs/HANDOFF.md) и [платформенного чек-листа](docs/PLATFORM_TESTING.md). Там зафиксированы архитектура, команды, различия клиентов и следующие шаги.
