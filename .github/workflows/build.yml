@@ -46,3 +46,50 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --title "Notepad Mac ${GITHUB_REF_NAME#v}" --generate-notes
+
+  latest:
+    name: Publish direct download
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: latest-download
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Notepad-Mac-universal
+          path: dist
+      - name: Publish application with a permanent download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # An older run must not replace a newer application.
+          HEAD_SHA="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$HEAD_SHA" != "$GITHUB_SHA" ]]; then
+            echo "A newer commit is available; skipping this download update."
+            exit 0
+          fi
+          cp dist/Notepad-Mac-*-universal.zip dist/Notepad-Mac-universal.zip
+          (cd dist && sha256sum Notepad-Mac-universal.zip > Notepad-Mac-universal.zip.sha256)
+          cat > release-notes.md <<EOF
+          Готовое приложение для macOS 13+, Apple Silicon и Intel.
+
+          Скачайте **Notepad-Mac-universal.zip**, распакуйте и перенесите **Notepad Mac.app** в **Программы**.
+
+          Инструкция установки: https://github.com/$GH_REPO#установить-на-mac
+
+          Исходники этой сборки: https://github.com/$GH_REPO/commit/$GITHUB_SHA
+          EOF
+          if gh release view latest >/dev/null 2>&1; then
+            gh api "repos/$GH_REPO/git/refs/tags/latest" --method PATCH -f sha="$GITHUB_SHA" -F force=true
+            gh release edit latest --title "Notepad Mac — скачать для macOS" --notes-file release-notes.md --prerelease
+          else
+            gh release create latest --target "$GITHUB_SHA" --title "Notepad Mac — скачать для macOS" --notes-file release-notes.md --prerelease
+          fi
+          gh release upload latest dist/Notepad-Mac-universal.zip dist/Notepad-Mac-universal.zip.sha256 --clobber
