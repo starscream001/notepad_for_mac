@@ -1,0 +1,15 @@
+{
+  "appId": "io.github.starscream001.notepad.mobile",
+  "appName": "Notepad",
+  "webDir": "www",
+  "backgroundColor": "#FFFFFF",
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}

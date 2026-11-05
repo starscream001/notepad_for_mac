@@ -2,14 +2,14 @@
 
 Это точка входа для следующей сессии разработки. Необходимо сначала прочитать корневой `AGENTS.md`.
 
-## Состояние на 0.6
+## Клиенты — актуальная сводка
 
 | Клиент | Реализация | Что проверять дальше |
 | --- | --- | --- |
 | macOS | Swift/AppKit; universal arm64+x86_64, macOS 13+ | Нативный пакет, обновление с 0.3/0.4/0.5, геометрия на минимальном окне |
 | Windows x64 | Electron + CodeMirror; NSIS EXE | Установка/удаление на Windows 10/11, Unicode-пути, диалоги, повторный запуск, DPI |
 | Linux x64 | Тот же клиент; AppImage + deb | Ubuntu 24.04, Wayland/X11, AppImage/FUSE, права файла, окна и горячие клавиши |
-| iOS/iPadOS/Android | Ещё не реализованы | Не выдавать десктопные пакеты за мобильные |
+| iOS/iPadOS/Android | mobile/, Capacitor8 + CodeMirror, local-first beta0.10.0-beta.1 | APK на физическом Android; iOS Simulator/Xcode. Подпись/TestFlight и mobile GitHub ещё впереди |
 
 GitHub Actions подтверждает компиляцию/упаковку на каждой ОС. Живое пользовательское тестирование Windows/Linux остаётся отдельной задачей после переключения на соответствующую машину. См. [чек-лист](PLATFORM_TESTING.md).
 
@@ -142,3 +142,6 @@ QA: native ui093qa /private/tmp/notepad-ui093-qa: last-note delete → empty →
 0.9.4: владелец прислал общий sync failure на Mac после входа. Причина пока неизвестна: на скрине нет HTTP-кода. НЕ утверждать, что это подтверждённый 403. Native request(syncStage:) теперь выбрасывает GitHubSyncHTTPFailure из NotepadCore с HTTP-кодом/этапом без rawbody/credentials; UI различает ошибки, раскрывает connection options для403/404. CoreChecks SyncFailureTests. Уточнение владельцу о существовании notepad-notes отправлено асинхронно. Реальный токен не читать; следующий результат владельца даст код.
 
 Мобильная работа начата по прямому запросу, отдельно mobile/0.10.0-beta.1; desktop VERSION не превращать в beta. Архитектура Capacitor8.6 + CodeMirror, shared SyncCore and preview; local-first. Native Java/Xcode отсутствуют локально, для APK/симулятора нужны Actions. См. docs/MOBILE.md и mobile/README.md после завершения подготовки.
+
+
+Мобильный checkpoint: подготовлены src/model/journal/storage/app, responsive shell, UTF-8 import/share export и additive JSON backup. 6 Node tests pass; browser375×812/812×375/1024×768, RU/EN/dark/Markdown/reload/project checked. Native platforms reproducibly generated with pinned npm lock, prepare icon/version/privacy script. Separate workflow mobile.yml publishes Android debug APK + iOS-Simulator prerelease only after both compile. Current instructions docs/MOBILE.md. Physical devices NOT tested. NativeFolders ignored; do not mistake missing localJava/Xcode for unsupportedmobile platforms.

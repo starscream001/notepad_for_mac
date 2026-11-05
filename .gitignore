@@ -15,3 +15,10 @@ desktop/github-oauth.json
 github-account.enc
 
 desktop/sync-core.cjs
+
+# Mobile generated builds and native projects (reproducible via mobile/scripts).
+mobile/node_modules/
+mobile/www/
+mobile/android/
+mobile/ios/
+mobile/release/

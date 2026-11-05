@@ -84,6 +84,15 @@
 | **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Windows-x64-Setup.exe) | Запустить → установить для себя |
 | **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
 
+**Мобильная beta · 0.10.0-beta.1**
+
+| Платформа | Тестовая сборка | Статус |
+| --- | --- | --- |
+| **Android 7+ · телефоны и планшеты** | [Скачать APK](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.1/Notepad-Mobile-0.10.0-beta.1-Android-debug.apk) | Локальные заметки, проекты, просмотр Markdown/HTML; debug beta |
+| **iPhone / iPad · iOS 16+** | [Исходники и инструкция](mobile/README.md) · [Simulator ZIP](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1) | Simulator ZIP только для Xcode; TestFlight пока не настроен |
+
+Мобильная beta работает локально: **GitHub-вход и синхронизация ещё не подключены**. Импорт/экспорт резервной копии — вручную. Перед переустановкой beta экспортируйте заметки: тестовая подпись APK между сборками может измениться. [Установка и ограничения](mobile/README.md).
+
 [Установка командой через GitHub CLI и план WinGet/Homebrew/Flathub](packaging/README.md). В центральных каталогах пакетов приложение пока не зарегистрировано.
 
 Готовые пакеты не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
@@ -236,3 +245,5 @@ Finder может показывать имя приложения без рас
 ---
 
 <p align="center">Notepad · macOS / Windows / Linux · <a href="LICENSE">MIT</a></p>
+
+**Мобильная beta 0.10.0-beta.1:** отдельная оболочка телефона и планшета, локальные проекты и заметки, подсветка, поиск, Markdown/HTML-просмотр и импорт/экспорт. [Мобильный релиз](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1).

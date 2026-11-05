@@ -1,0 +1,122 @@
+name: Build mobile beta
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/mobile.yml', 'Resources/SyncCore.js', 'desktop/src/preview.js', 'docs/releases/mobile-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test && npm run build
+      - run: node scripts/prepare.mjs android
+      - name: Build installable Android test APK
+        run: |
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          cd android
+          ./gradlew --no-daemon assembleDebug
+          cd ..
+          version=$(node -p "require('./package.json').version")
+          mkdir -p release
+          cp android/app/build/outputs/apk/debug/app-debug.apk "release/Notepad-Mobile-$version-Android-debug.apk"
+          cd release
+          sha256sum *.apk > "Notepad-Mobile-$version-Android-debug.apk.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Notepad-Mobile-Android
+          path: mobile/release/*
+          retention-days: 7
+  ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Select Xcode 26
+        run: |
+          for candidate in /Applications/Xcode_26*.app; do
+            if [ -d "$candidate" ]; then selected_xcode="$candidate"; fi
+          done
+          test -n "${selected_xcode:-}"
+          echo "DEVELOPER_DIR=$selected_xcode/Contents/Developer" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm test && npm run build
+      - run: node scripts/prepare.mjs ios
+      - name: Build iPhone and iPad simulator app
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build
+          version=$(node -p "require('./package.json').version")
+          mkdir -p release
+          ditto -c -k --sequesterRsrc --keepParent ios/build/Build/Products/Debug-iphonesimulator/App.app "release/Notepad-Mobile-$version-iOS-Simulator.zip"
+          cd release
+          shasum -a 256 *.zip > "Notepad-Mobile-$version-iOS-Simulator.zip.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Notepad-Mobile-iOS-Simulator
+          path: mobile/release/*
+          retention-days: 7
+  publish:
+    needs: [android, ios]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Notepad-Mobile-*
+          path: mobile/release
+          merge-multiple: true
+      - name: Publish mobile prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./mobile/package.json').version")
+          tag="mobile-v$version"
+          state=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null || true)
+          if [ "$state" = false ]; then exit 0; fi
+          if [ "$state" != true ]; then
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --title "Notepad Mobile $version" --notes-file "docs/releases/$tag.md"
+          fi
+          for file in mobile/release/*; do
+            name=$(basename "$file")
+            digest=$(sha256sum "$file" | cut -d ' ' -f1)
+            remote=$(gh api "repos/$GH_REPO/releases?per_page=100" --jq ".[] | select(.tag_name == \"$tag\") | .assets[] | select(.name == \"$name\") | .digest")
+            if [ -n "$remote" ]; then
+              test "$remote" = "sha256:$digest"
+            else
+              gh release upload "$tag" "$file"
+            fi
+          done
+          gh release edit "$tag" --draft=false --prerelease --latest=false
