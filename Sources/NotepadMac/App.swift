@@ -146,6 +146,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.controlSize = .small
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setContentHuggingPriority(.required, for: .vertical)
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.font = .systemFont(ofSize: 13, weight: .medium)
         button.heightAnchor.constraint(equalToConstant: 30).isActive = true
         if title.isEmpty {
@@ -160,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let control = button("", action, symbol:symbol); control.setAccessibilityLabel(title); control.toolTip = title; return control
     }
     func row(_ views: [NSView]) -> NSStackView {
-        let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.alignment = .centerY; stack.spacing = 8
+        let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.alignment = .centerY; stack.spacing = 6
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         return stack
     }
@@ -180,13 +182,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         previewButton = iconButton(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton("GitHub", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"), iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку", #selector(deleteNote), symbol:"trash"), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
+        let fox = NSImageView();fox.image=Bundle.main.url(forResource:"AppIcon",withExtension:"png").flatMap { NSImage(contentsOf:$0) };fox.imageScaling = .scaleProportionallyUpOrDown;fox.setAccessibilityLabel("Notepad — fox");fox.translatesAutoresizingMaskIntoConstraints=false
+        fox.widthAnchor.constraint(equalToConstant:36).isActive=true;fox.heightAnchor.constraint(equalToConstant:36).isActive=true
+        let toolbar = row([fox,button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton("GitHub", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"), iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку", #selector(deleteNote), symbol:"trash"), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
+        toolbar.edgeInsets = NSEdgeInsets(top:3,left:12,bottom:3,right:12)
         toolbar.detachesHiddenViews = false
         toolbar.heightAnchor.constraint(equalToConstant: 42).isActive = true
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.alignment = .centerY; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
-        let tabScroll = NSScrollView(); tabScroll.hasHorizontalScroller = true; tabScroll.autohidesScrollers = true
+        let tabScroll = NSScrollView(); tabScroll.scrollerStyle = .overlay;tabScroll.hasHorizontalScroller = true; tabScroll.autohidesScrollers = true
         tabScroll.drawsBackground = false; tabScroll.documentView = tabStack
         tabStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 40)])

@@ -46,7 +46,7 @@
 **Предпросмотр исправлен.** HTML сохраняет собственные встроенные стили, атрибуты `html/body`, таблицы и Grid. Markdown показывает заголовки, списки, таблицы, цитаты и блоки кода. Скрипты, внешние CSS/картинки и локальные ресурсы не загружаются. JSON/SQL/XML и другие языки остаются текстом с подсветкой; отдельной визуализации для них нет. Уменьшены и согласованы кнопки `+` и настроек.
 
 
-[Изменения 0.9.1](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.9.1) · [История версий](CHANGELOG.md) · [Синхронизация и мобильные версии — план](docs/ROADMAP.md)
+[Изменения 0.9.2](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.9.2) · [История версий](CHANGELOG.md) · [Синхронизация и мобильные версии — план](docs/ROADMAP.md)
 
 <table>
 <tr>
@@ -81,8 +81,8 @@
 | Платформа | Готовое приложение | Установка |
 | --- | --- | --- |
 | **macOS 13+** · Intel / Apple Silicon | [Скачать ZIP](https://github.com/starscream001/notepad_for_mac/releases/latest/download/Notepad-Mac-universal.zip) | Распаковать → перенести в «Программы» |
-| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.1/Notepad-Desktop-0.9.1-Windows-x64-Setup.exe) | Запустить → установить для себя |
-| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.1/Notepad-Desktop-0.9.1-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.1/Notepad-Desktop-0.9.1-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
+| **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.2/Notepad-Desktop-0.9.2-Windows-x64-Setup.exe) | Запустить → установить для себя |
+| **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.2/Notepad-Desktop-0.9.2-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.2/Notepad-Desktop-0.9.2-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
 
 [Установка командой через GitHub CLI и план WinGet/Homebrew/Flathub](packaging/README.md). В центральных каталогах пакетов приложение пока не зарегистрировано.
 
@@ -135,11 +135,11 @@ Finder может показывать имя приложения без рас
 
 **Первый переход с 0.1 / 0.2 на 0.3 — вручную:** скачайте ZIP и замените приложение через Finder после выхода через **⌘Q**. Начиная с 0.3, последующие версии можно устанавливать из редактора. Сессии прежних версий совместимы.
 
-[Что нового в 0.9.1](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.9.1) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
+[Что нового в 0.9.2](https://github.com/starscream001/notepad_for_mac/releases/tag/v0.9.2) · [История изменений](CHANGELOG.md) · [Все релизы](https://github.com/starscream001/notepad_for_mac/releases)
 
 <a id="formats"></a>
 
-**Windows с 0.7.3:** «Помощь → Проверить обновления» или «О проекте → Проверить сейчас». Приложение предлагает скачать установщик, показывает прогресс и проверяет SHA256, затем по кнопке «Установить и перезапустить» сохраняет сессию и открывает установщик Windows. GitHub в браузере не открывается. **Переход с 0.7.2 и старше на 0.9.1 нужно сделать вручную один раз** — старый updater не умеет скачивать установщик. Предупреждения Windows не обходятся; сертификата Authenticode пока нет. **Linux:** пока открывает Release для установки вручную.
+**Windows с 0.7.3:** «Помощь → Проверить обновления» или «О проекте → Проверить сейчас». Приложение предлагает скачать установщик, показывает прогресс и проверяет SHA256, затем по кнопке «Установить и перезапустить» сохраняет сессию и открывает установщик Windows. GitHub в браузере не открывается. **Переход с 0.7.2 и старше на 0.9.2 нужно сделать вручную один раз** — старый updater не умеет скачивать установщик. Предупреждения Windows не обходятся; сертификата Authenticode пока нет. **Linux:** пока открывает Release для установки вручную.
 
 ## Предпросмотр Markdown и HTML
 
@@ -229,7 +229,7 @@ Finder может показывать имя приложения без рас
 
 ## Последние изменения
 
-**Новое в 0.9.1:** ручная GitHub-синхронизация с реальным сохранением и загрузкой заметок, конфликтные копии и сквозное удаление. Крестик только закрывает вкладку — заметка остаётся в проекте. Локальное сохранение и кнопка GitHub разделены. Выровнены компактные кнопки и вкладки; настройки прокручиваются. [Как подключить синхронизацию](docs/SYNC.md).
+**Новое в 0.9.2:** лиса возвращена в верхнюю панель и увеличена до 36 pt. Панель проектов стала компактнее: заголовок и отдельный плюс, единые отступы дочерних заметок и спокойное выделение. Вкладки и кнопки сохраняют фиксированную высоту. GitHub-синхронизация и сквозное удаление из 0.9.1 сохранены. [Инструкция](docs/SYNC.md).
 
 **Контакты:** [GitHub · starscream001](https://github.com/starscream001) · [Telegram · @Ilya_Manik](https://t.me/Ilya_Manik).
 

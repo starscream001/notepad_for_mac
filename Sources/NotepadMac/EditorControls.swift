@@ -116,3 +116,13 @@ final class EditorSidebar: NSStackView {
         NSColor.separatorColor.setFill(); NSRect(x:bounds.maxX-1,y:0,width:1,height:bounds.height).fill()
     }
 }
+
+final class SidebarNoteCell: NSButtonCell {
+    override func drawBezel(withFrame frame:NSRect,in view:NSView) {
+        guard state == .on || isHighlighted else { return }
+        EditorPalette.button.setFill();NSBezierPath(roundedRect:frame.insetBy(dx:1,dy:1),xRadius:5,yRadius:5).fill()
+    }
+    override func drawTitle(_ title:NSAttributedString,withFrame frame:NSRect,in view:NSView)->NSRect {
+        let text=NSMutableAttributedString(attributedString:title);text.addAttribute(.foregroundColor,value:EditorPalette.label,range:NSRange(location:0,length:text.length));return super.drawTitle(text,withFrame:frame,in:view)
+    }
+}

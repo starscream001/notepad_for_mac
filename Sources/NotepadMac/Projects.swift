@@ -10,10 +10,11 @@ extension AppDelegate {
         projectPane.arrangedSubviews.forEach { projectPane.removeArrangedSubview($0); $0.removeFromSuperview() }
         projectPane.orientation = .vertical; projectPane.alignment = .leading; projectPane.spacing = 8
         projectPane.edgeInsets = NSEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
-        if projectPane.constraints.first(where: { $0.firstAttribute == .width }) == nil { projectPane.widthAnchor.constraint(equalToConstant: 210).isActive = true }
-        let header = button(InterfaceLanguage.english ? "+ Project" : "+ Проект", #selector(createProject))
-        header.widthAnchor.constraint(equalToConstant:190).isActive=true
-        projectPane.addArrangedSubview(header)
+        if projectPane.constraints.first(where: { $0.firstAttribute == .width }) == nil { projectPane.widthAnchor.constraint(equalToConstant: 190).isActive = true }
+        let title=NSTextField(labelWithString:InterfaceLanguage.english ? "Projects" : "Проекты");title.font = .systemFont(ofSize:12,weight:.semibold);title.textColor = .secondaryLabelColor
+        let add=iconButton(InterfaceLanguage.english ? "New project" : "Создать проект",#selector(createProject),symbol:"plus")
+        let header=NSStackView(views:[title,NSView(),add]);header.orientation = .horizontal;header.alignment = .centerY;header.spacing=6
+        header.widthAnchor.constraint(equalToConstant:170).isActive=true;header.heightAnchor.constraint(equalToConstant:30).isActive=true;projectPane.addArrangedSubview(header)
         projectRows.orientation = .vertical; projectRows.alignment = .leading; projectRows.spacing = 4
         let scroll = NSScrollView(); scroll.drawsBackground = false; scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.documentView = projectRows
         scroll.translatesAutoresizingMaskIntoConstraints = false; projectRows.translatesAutoresizingMaskIntoConstraints = false
@@ -37,7 +38,7 @@ extension AppDelegate {
             disclosure.widthAnchor.constraint(equalToConstant: 20).isActive = true
             if id == nil { disclosure.isEnabled = false }
             let pick = RenamableButton(title: title, target: self, action: #selector(pickProject(_:)))
-            pick.cell = EditorButtonCell(textCell: title); pick.target = self; pick.action = #selector(pickProject(_:)); pick.identifier = disclosure.identifier
+            pick.cell = SidebarNoteCell(textCell: title); pick.target = self; pick.action = #selector(pickProject(_:)); pick.identifier = disclosure.identifier
             pick.setButtonType(.pushOnPushOff); pick.state = id == selectedProjectID ? .on : .off; pick.alignment = .left; pick.lineBreakMode = .byTruncatingTail
             pick.bezelStyle = .smallSquare; pick.font = .systemFont(ofSize: 12, weight: .medium); pick.heightAnchor.constraint(equalToConstant: 30).isActive = true
             if let id { pick.onRename = { [weak self] in self?.renameProject(id) } }
@@ -46,17 +47,23 @@ extension AppDelegate {
                 for tab in tabs where tab.snapshot.projectID == id {
                     let label = (tab.dirty ? "● " : "") + tab.snapshot.title
                     let entry = RenamableButton(title: label, target: self, action: #selector(selectTab(_:)))
-                    entry.isBordered = false; entry.alignment = .left; entry.font = .systemFont(ofSize: 12, weight: tab.snapshot.id == selectedID ? .semibold : .regular); entry.lineBreakMode = .byTruncatingTail
+                    entry.cell=SidebarNoteCell(textCell:label);entry.target=self;entry.action=#selector(selectTab(_:));entry.bezelStyle = .smallSquare;entry.setButtonType(.pushOnPushOff);entry.state=tab.snapshot.id==selectedID ? .on : .off;entry.isBordered = true; entry.alignment = .left; entry.font = .systemFont(ofSize: 12, weight: tab.snapshot.id == selectedID ? .semibold : .regular); entry.lineBreakMode = .byTruncatingTail
                     entry.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString); entry.toolTip = displayTitle(tab)
                     entry.setAccessibilityLabel(displayTitle(tab)); entry.heightAnchor.constraint(equalToConstant: 28).isActive = true
                     entry.onRename = { [weak self, weak tab] in if let tab { self?.renameTab(tab) } }
-                    projectRows.addArrangedSubview(entry); entry.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
+                    addProjectEntry(entry)
                 }
                 for snapshot in archivedTabs where snapshot.projectID == id {
-                    let entry=NSButton(title:snapshot.title,target:self,action:#selector(reopenNote(_:)));entry.isBordered=false;entry.alignment = .left;entry.font = .systemFont(ofSize:12);entry.contentTintColor = .secondaryLabelColor;entry.identifier=NSUserInterfaceItemIdentifier(snapshot.id.uuidString);entry.heightAnchor.constraint(equalToConstant:28).isActive=true;projectRows.addArrangedSubview(entry);entry.widthAnchor.constraint(equalTo:projectRows.widthAnchor).isActive=true
+                    let entry=NSButton(title:snapshot.title,target:self,action:#selector(reopenNote(_:)));entry.isBordered=false;entry.alignment = .left;entry.font = .systemFont(ofSize:12);entry.contentTintColor = .secondaryLabelColor;entry.identifier=NSUserInterfaceItemIdentifier(snapshot.id.uuidString);entry.heightAnchor.constraint(equalToConstant:28).isActive=true;addProjectEntry(entry)
                 }
             }
         }
+    }
+    func addProjectEntry(_ entry:NSButton) {
+        let indent=NSView();indent.widthAnchor.constraint(equalToConstant:24).isActive=true
+        let row=NSStackView(views:[indent,entry]);row.orientation = .horizontal;row.alignment = .centerY;row.spacing=0
+        entry.setContentCompressionResistancePriority(.defaultLow,for:.horizontal);entry.setContentHuggingPriority(.defaultLow,for:.horizontal)
+        projectRows.addArrangedSubview(row);row.widthAnchor.constraint(equalTo:projectRows.widthAnchor).isActive=true
     }
     @objc func reopenNote(_ sender:NSButton) {
         guard let index=archivedTabs.firstIndex(where:{$0.id.uuidString==sender.identifier?.rawValue}) else { return };let snapshot=archivedTabs.remove(at:index);let tab=EditorTab(snapshot,fontSize:fontSize,wrap:wrap);tab.textView.delegate=self;tabs.append(tab);select(tab);rebuildTabs();schedulePersistence()
