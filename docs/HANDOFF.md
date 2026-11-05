@@ -145,3 +145,5 @@ QA: native ui093qa /private/tmp/notepad-ui093-qa: last-note delete → empty →
 
 
 Мобильный checkpoint: подготовлены src/model/journal/storage/app, responsive shell, UTF-8 import/share export и additive JSON backup. 6 Node tests pass; browser375×812/812×375/1024×768, RU/EN/dark/Markdown/reload/project checked. Native platforms reproducibly generated with pinned npm lock, prepare icon/version/privacy script. Separate workflow mobile.yml publishes Android debug APK + iOS-Simulator prerelease only after both compile. Current instructions docs/MOBILE.md. Physical devices NOT tested. NativeFolders ignored; do not mistake missing localJava/Xcode for unsupportedmobile platforms.
+
+Mobile CI checkpoint: first Android run42103140887 stopped before compilation because sdkmanager was missing from PATH. mobile.yml now explicitly installs/configures SDK via android-actions/setup-android@v3 and uses setup-java@v5. iOS compilation still in progress. Stable0.9.4 first run passed builds but publish.sh deliberately skipped publication because main advanced; latest-source desktop run must publish. Do not claim0.9.4 public until /releases/tags/v0.9.4 verified.
