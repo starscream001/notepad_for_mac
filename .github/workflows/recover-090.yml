@@ -1,0 +1,30 @@
+name: Recover verified 0.9.0 draft
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-090.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'Recover 0.9.0 draft publication without replacing assets'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Notepad-*
+          path: dist
+          merge-multiple: true
+          run-id: 42060676869
+          github-token: ${{ github.token }}
+      - name: Resume existing tested packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test "$(cat VERSION)" = 0.9.0
+          ./scripts/publish.sh

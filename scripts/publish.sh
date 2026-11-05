@@ -43,7 +43,20 @@ publish_version() {
       extras+=("$stage/$(basename "$file")" "$stage/$(basename "$file").sha256")
     done
   fi
-  retry gh release upload "v$version" "$stage/Notepad-Mac-universal.zip" "$stage/Notepad-Mac-universal.zip.sha256" "${extras[@]}" --clobber
+  # Resume drafts without deleting valid uploaded files after transient API failures.
+  local asset digest remote expected
+  for file in "$stage/Notepad-Mac-universal.zip" "$stage/Notepad-Mac-universal.zip.sha256" "${extras[@]}"; do
+    asset="$(basename "$file")"
+    digest="$(sha256sum "$file" | cut -d ' ' -f 1)"
+    remote="$(gh api "repos/$GH_REPO/releases/tags/v$version" --jq ".assets[] | select(.name == \"$asset\") | [.digest, .size, .state] | @tsv")"
+    expected="$(printf 'sha256:%s\t%s\tuploaded' "$digest" "$(wc -c < "$file" | tr -d ' ')")"
+    if [[ -n "$remote" ]]; then
+      [[ "$remote" == "$expected" ]] || { echo "Draft asset mismatch: $asset; refusing replacement."; return 1; }
+      echo "Verified existing draft asset: $asset"
+    else
+      retry gh release upload "v$version" "$file"
+    fi
+  done
   retry gh release edit "v$version" --title "Notepad Mac $version" --notes-file "$notes" --draft=false --prerelease=false --latest="$newest"
 }
 # Register the original tested 0.1 build once, using its original source revision
