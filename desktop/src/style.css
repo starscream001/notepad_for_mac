@@ -50,3 +50,15 @@ body.light{--bg:#fff;--panel:#f2f2f2;--editor:#fff;--text:#000}
 footer #settings{flex:0 0 32px;display:inline-flex;align-items:center;justify-content:center}
 
 #update-dialog{width:460px;border-radius:12px}#update-dialog h2{font-size:18px}#update-progress{width:100%;height:8px;accent-color:var(--accent)}.update-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+
+/* 0.8 workspaces: compact independent projects, no folder indexing. */
+#project-sidebar{width:210px;min-width:170px;max-width:35vw;resize:horizontal;overflow:auto;flex-shrink:0;padding:12px 10px;background:var(--bg);border-right:1px solid var(--border)}
+#new-project{width:100%;text-align:left;margin-bottom:12px}
+#project-rows{display:flex;flex-direction:column;gap:4px}.project-group{margin-bottom:8px}.project-heading{display:flex;align-items:center;gap:4px}
+.project-heading button{background:transparent;text-align:left;min-width:0}.project-heading .project-name{flex:1;overflow:hidden;text-overflow:ellipsis;font-weight:600}.project-heading .project-active{background:var(--hover)}
+.project-heading .project-collapse{width:22px;flex:0 0 22px;padding:0}.project-doc{display:block;width:100%;padding-left:26px;text-align:left;background:transparent;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px}.project-doc[aria-current=true]{color:var(--text);background:var(--panel)}
+#toggle-projects,#settings,#tabs .new-tab{width:30px;height:30px;min-height:30px;flex:0 0 30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;vertical-align:middle}
+#tabs .new-tab{font-size:23px;font-weight:400;line-height:1;align-self:center;margin:0 3px}footer #settings{flex-basis:30px;margin-left:4px}#settings svg{display:block;width:16px;height:16px}
+#name-dialog{width:380px;border-radius:12px}#name-title{font-size:18px}#name-value{width:100%;height:32px;font:inherit;color:var(--text);background:var(--editor);border:1px solid var(--border);border-radius:7px;padding:5px 9px}#name-error{color:var(--text);font-size:12px}
+
+#tabs .new-tab{background:var(--bg);box-shadow:inset 0 0 0 1px var(--border)}#tabs .new-tab:hover{background:var(--hover)}

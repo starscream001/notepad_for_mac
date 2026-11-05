@@ -70,8 +70,11 @@ final class PreviewPane: NSObject, WKNavigationDelegate {
         // No remote requests, forms, scripts, frames or local file access from a preview.
         // Inline CSS and embedded data images remain available for HTML mockups.
         let policy = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; script-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'"
-        let css = markdown ? Self.markdownCSS : "html { color-scheme: light dark; } body { overflow-wrap:break-word; }"
-        web.loadHTMLString("<!doctype html><html><head><meta charset='utf-8'><meta http-equiv='Content-Security-Policy' content=\"\(policy)\"><meta name='viewport' content='width=device-width,initial-scale=1'><style>\(css)</style></head><body>\(body)</body></html>", baseURL: nil)
+        let css = markdown ? "<style>\(Self.markdownCSS)</style>" : ""
+        // Put the trusted policy first, before any source markup. Do not create an
+        // outer body: the HTML parser must retain the source body's class/style/dir.
+        let prefix = "<!doctype html><meta charset='utf-8'><meta http-equiv='Content-Security-Policy' content=\"\(policy)\"><meta name='viewport' content='width=device-width,initial-scale=1'>\(css)"
+        web.loadHTMLString(prefix + body, baseURL: nil)
     }
 
     private func show(_ body: String) {
@@ -80,6 +83,7 @@ final class PreviewPane: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if action.navigationType == .linkActivated {
+            if let url = action.request.url, url.scheme == "about", url.fragment != nil { decisionHandler(.allow); return }
             if let url = action.request.url, ["https", "http", "mailto"].contains(url.scheme?.lowercased() ?? "") { NSWorkspace.shared.open(url) }
             decisionHandler(.cancel)
         } else if action.request.url?.scheme == "about" { decisionHandler(.allow) }

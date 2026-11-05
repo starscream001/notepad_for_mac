@@ -1,4 +1,5 @@
 export const strings={
+'Проекты':'Projects','+ Проект':'+ Project','Название':'Name','Отмена':'Cancel',
 'Контрольная сумма SHA256 не совпала. Установщик не запускается.':'Update SHA256 does not match.',
 'Размер обновления не совпал.':'Update size does not match.',
 'Загрузка обновления не завершена.':'Update download is incomplete.',

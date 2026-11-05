@@ -2,6 +2,7 @@ const {app,BrowserWindow,Menu,dialog,ipcMain,shell,clipboard,session}=require('e
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {decode,encode,fingerprint,atomicWrite,newer,assetFor,MAX_BYTES}=require('./core.cjs');
 const updates=require('./updates.cjs');
+const projectsCore=require('./projects.cjs');
 let updateController=null,preparedUpdate=null,installingUpdate=false;
 const updateState=value=>{if(win&&!win.isDestroyed())win.webContents.send('update-state',value);};
 const en=()=>model.settings?.locale==='en';
@@ -19,13 +20,13 @@ const stateFile=()=>path.join(app.getPath('userData'),'session.json');
 function persist(){fs.mkdirSync(path.dirname(stateFile()),{recursive:true});atomicWrite(stateFile(),JSON.stringify(model));}
 function readFile(file){
   file=fs.realpathSync(file);if(fs.statSync(file).size>MAX_BYTES)throw Error('Поддерживаются файлы до 20 МБ.');
-  const value=decode(fs.readFileSync(file));const tab={id:crypto.randomUUID(),path:file,title:path.basename(file),...value,savedText:value.text,savedEncoding:value.encoding,savedEnding:value.ending,diskHash:fingerprint(file),language:'auto',selection:0};
+  const value=decode(fs.readFileSync(file));const tab={id:crypto.randomUUID(),path:file,title:path.basename(file),...value,savedText:value.text,savedEncoding:value.encoding,savedEnding:value.ending,diskHash:fingerprint(file),language:'auto',selection:0,projectId:model.selectedProject||null};
   const existing=model.tabs.find(t=>t.path===file);if(existing)return existing;
   paths.set(tab.id,file);model.tabs.push(tab);model.selected=tab.id;return tab;
 }
 function load(){
   if(!fs.existsSync(stateFile()))return;
-  try {const saved=JSON.parse(fs.readFileSync(stateFile(),'utf8'));if(!Array.isArray(saved.tabs))throw Error('Неверная сессия');model=saved;
+  try {const saved=JSON.parse(fs.readFileSync(stateFile(),'utf8'));if(!Array.isArray(saved.tabs))throw Error('Неверная сессия');if(!Array.isArray(saved.projects)){try{fs.copyFileSync(stateFile(),path.join(path.dirname(stateFile()),'session.before-projects.json'),fs.constants.COPYFILE_EXCL);}catch(e){if(e.code!=='EEXIST')throw e;}}model=projectsCore.normalize(saved);
     for(const tab of model.tabs){if(tab.path){paths.set(tab.id,tab.path);if(tab.text===tab.savedText&&fs.existsSync(tab.path)){const current=decode(fs.readFileSync(tab.path));Object.assign(tab,current,{savedText:current.text,savedEncoding:current.encoding,savedEnding:current.ending,diskHash:fingerprint(tab.path)});}}}
   }catch(error){const backup=stateFile()+'.damaged-'+Date.now();fs.renameSync(stateFile(),backup);model={tabs:[],selected:null,settings:{}};dialog.showErrorBox('Сессия сохранена для восстановления',`${error.message}\nКопия: ${backup}`);}
 }
@@ -38,17 +39,18 @@ handler('save',async(tab,as)=>{
   if(typeof tab?.id!=='string'||typeof tab.text!=='string'||Buffer.byteLength(tab.text)>MAX_BYTES)throw Error('Некорректный документ или больше 20 МБ.');
   if(!['UTF-8','UTF-8 BOM','UTF-16 LE','UTF-16 BE'].includes(tab.encoding)||!['LF','CRLF','CR'].includes(tab.ending))throw Error('Неверная кодировка.');
   let file=paths.get(tab.id);const old=model.tabs.find(t=>t.id===tab.id);
-  if(as||!file){const result=await dialog.showSaveDialog(win,{defaultPath:file||tab.title||'Untitled.txt'});if(result.canceled)return null;file=result.filePath;}
+  if(as||!file){const result=await dialog.showSaveDialog(win,{defaultPath:file||(projectsCore.title(tab,model.projects||[])+'.txt')});if(result.canceled)return null;file=result.filePath;}
   if(fs.existsSync(file))file=fs.realpathSync(file);
   if([...paths].some(([id,p])=>id!==tab.id&&p===file))throw Error('Файл уже открыт в другой вкладке.');
   if(!as&&old?.diskHash&&fs.existsSync(file)&&fingerprint(file)!==old.diskHash){const r=await dialog.showMessageBox(win,{type:'warning',message:tr('Файл изменён другой программой','File changed outside the editor'),detail:'Перезаписать текущим текстом? Можно отменить и выбрать «Сохранить как».',buttons:[tr('Отмена','Cancel'),tr('Перезаписать','Overwrite')],defaultId:0,cancelId:0});if(r.response!==1)return null;}
   atomicWrite(file,encode(tab.text,tab.encoding,tab.ending));paths.set(tab.id,file);
-  const saved={...tab,path:file,title:path.basename(file),savedText:tab.text,savedEncoding:tab.encoding,savedEnding:tab.ending,diskHash:fingerprint(file)};
+  const saved={...tab,path:file,title:tab.projectId?tab.title:path.basename(file),savedText:tab.text,savedEncoding:tab.encoding,savedEnding:tab.ending,diskHash:fingerprint(file)};
   const i=model.tabs.findIndex(t=>t.id===tab.id);if(i>=0)model.tabs[i]=saved;else model.tabs.push(saved);persist();return saved;
 });
 handler('snapshot',value=>{
   if(!Array.isArray(value?.tabs)||value.tabs.length>300||value.tabs.some(t=>typeof t.id!=='string'||typeof t.text!=='string'||Buffer.byteLength(t.text)>MAX_BYTES))throw Error('Сессия слишком большая или повреждена.');
-  model={tabs:value.tabs.map(t=>{const previous=model.tabs.find(x=>x.id===t.id);return {...t,path:paths.get(t.id)||null,diskHash:previous?.diskHash||null};}),selected:value.selected,settings:value.settings||{}};
+  const normalized=projectsCore.normalize(value);
+  model={tabs:normalized.tabs.map(t=>{const previous=model.tabs.find(x=>x.id===t.id);return {...t,path:paths.get(t.id)||null,diskHash:previous?.diskHash||null};}),selected:value.selected,settings:value.settings||{},projects:normalized.projects,selectedProject:normalized.selectedProject};
   persist();refreshMenuLanguage();if(closing){allowClose=true;win.close();}return true;
 });
 handler('confirm-close',async title=>{const r=await dialog.showMessageBox(win,{type:'question',message:en()?`Save “${String(title).slice(0,200)}”?`:`Сохранить «${String(title).slice(0,200)}»?`,buttons:[tr('Сохранить','Save'),tr('Отмена','Cancel'),tr('Не сохранять',"Don't Save")],defaultId:0,cancelId:1});return r.response;});

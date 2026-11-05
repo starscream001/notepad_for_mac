@@ -8,6 +8,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     var preferencesPanel: NSPanel?
     var tabs: [EditorTab] = []
     var selectedID: UUID?
+    var projects: [SessionProject] = []
+    var selectedProjectID: UUID?
+    var visibleTabs: [EditorTab] { tabs.filter { $0.snapshot.projectID == selectedProjectID } }
+    let projectPane = NSStackView()
+    let projectRows = EditorListStack()
+    var looseSelected: UUID?
+    var projectSignature = ""
     var current: EditorTab? { tabs.first { $0.snapshot.id == selectedID } }
     let tabStack = NSStackView()
     let editorHost = NSView()
@@ -134,8 +141,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.bezelStyle = .rounded
         button.font = .systemFont(ofSize: 13, weight: .medium)
         button.heightAnchor.constraint(equalToConstant: 30).isActive = true
-        if let symbol { button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title); button.imagePosition = .imageLeading }
-        button.setAccessibilityLabel(title.isEmpty && symbol == "gearshape" ? L("Настройки…") : title); button.toolTip = title.isEmpty && symbol == "gearshape" ? L("Настройки…") : title
+        if title.isEmpty {
+            button.widthAnchor.constraint(equalToConstant: 30).isActive = true
+            button.imagePosition = .imageOnly; button.imageScaling = .scaleProportionallyDown
+        }
+        if let symbol { button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)?.withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [EditorPalette.label])); button.image?.isTemplate = false; button.imagePosition = title.isEmpty ? .imageOnly : .imageLeading }
+        button.setAccessibilityLabel(title.isEmpty ? (symbol == "gearshape" ? L("Настройки…") : (symbol == "sidebar.left" ? (InterfaceLanguage.english ? "Projects" : "Проекты") : L("Новая вкладка"))) : title); button.toolTip = title.isEmpty ? (symbol == "gearshape" ? L("Настройки…") : (symbol == "sidebar.left" ? (InterfaceLanguage.english ? "Projects" : "Проекты") : L("Новая вкладка"))) : title
         return button
     }
     func row(_ views: [NSView]) -> NSStackView {
@@ -159,7 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         previewButton = button(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button(L("О проекте"), #selector(about), symbol: "info.circle")])
+        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button(L("О проекте"), #selector(about), symbol: "info.circle")])
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -202,7 +213,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         splitController.addSplitViewItem(editItem); splitController.addSplitViewItem(previewItem)
         previewItem.isCollapsed = true
         editorSplit.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
-        root.addArrangedSubview(editorSplit)
+        configureProjects()
+        let workspace = NSStackView(views: [projectPane, editorSplit]); workspace.orientation = .horizontal; workspace.spacing = 0; workspace.alignment = .top; workspace.distribution = .fill
+        editorSplit.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
+        projectPane.heightAnchor.constraint(equalTo: editorSplit.heightAnchor).isActive = true
+        root.addArrangedSubview(workspace)
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
         pathLabel.font = .systemFont(ofSize: 11)
         status.lineBreakMode = .byTruncatingTail
@@ -240,15 +255,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     }
 
     @objc func newDocument(_ sender: Any?) {
-        addTab(SessionTab(title: L("Без имени \(tabs.filter { $0.url == nil }.count + 1)")))
+        let base = InterfaceLanguage.english ? "Note" : "Заметка"
+        var n = 1; while visibleTabs.contains(where: { $0.snapshot.title == "\(base) \(n)" }) { n += 1 }
+        addTab(SessionTab(title: "\(base) \(n)"))
     }
     func addTab(_ snapshot: SessionTab) {
+        var snapshot = snapshot; snapshot.projectID = selectedProjectID
         let tab = EditorTab(snapshot, fontSize: fontSize, wrap: wrap)
         tab.textView.delegate = self
         tabs.append(tab); select(tab); rebuildTabs(); schedulePersistence()
     }
     func select(_ tab: EditorTab) {
+        let changedProject = selectedProjectID != tab.snapshot.projectID
+        selectedProjectID = tab.snapshot.projectID
         selectedID = tab.snapshot.id
+        if let index = projects.firstIndex(where: { $0.id == selectedProjectID }) { projects[index].selected = selectedID }
+        else { looseSelected = selectedID }
+        if changedProject { rebuildTabs() }
         editorHost.subviews.forEach { $0.removeFromSuperview() }
         let scroll = tab.container; scroll.translatesAutoresizingMaskIntoConstraints = false; editorHost.addSubview(scroll)
         NSLayoutConstraint.activate([scroll.leadingAnchor.constraint(equalTo: editorHost.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: editorHost.trailingAnchor), scroll.topAnchor.constraint(equalTo: editorHost.topAnchor), scroll.bottomAnchor.constraint(equalTo: editorHost.bottomAnchor)])
@@ -256,13 +279,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         window.makeFirstResponder(tab.textView); tab.highlight(); updateStatus(); updateTabLabels(); refreshPreview(); schedulePersistence()
     }
     func rebuildTabs() {
+        rebuildProjects()
         tabStack.arrangedSubviews.forEach { tabStack.removeArrangedSubview($0); $0.removeFromSuperview() }; tabButtons = [:]; tabSurfaces = [:]
-        for tab in tabs {
+        for tab in visibleTabs {
             let surface = TabSurface()
             surface.translatesAutoresizingMaskIntoConstraints = false
-            let selectButton = NSButton(title: "", target: self, action: #selector(selectTab(_:)))
+            let selectButton = RenamableButton(title: "", target: self, action: #selector(selectTab(_:)))
             selectButton.isBordered = false; selectButton.font = .systemFont(ofSize: 13, weight: .medium)
             selectButton.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString)
+            selectButton.onRename = { [weak self, weak tab] in if let tab { self?.renameTab(tab) } }
             selectButton.lineBreakMode = .byTruncatingTail
             selectButton.alignment = .left
             let close = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: L("Закрыть вкладку"))!, target: self, action: #selector(closeTab(_:)))
@@ -273,7 +298,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             for control in [selectButton, close] { control.translatesAutoresizingMaskIntoConstraints = false; surface.addSubview(control) }
             NSLayoutConstraint.activate([
                 surface.heightAnchor.constraint(equalToConstant: 30),
-                surface.widthAnchor.constraint(equalToConstant: min(220, max(150, CGFloat(tab.snapshot.title.count) * 7 + 62))),
+                surface.widthAnchor.constraint(equalToConstant: min(220, max(150, CGFloat(displayTitle(tab).count) * 7 + 62))),
                 selectButton.leadingAnchor.constraint(equalTo: surface.leadingAnchor, constant: 12),
                 selectButton.trailingAnchor.constraint(equalTo: close.leadingAnchor, constant: -6),
                 selectButton.topAnchor.constraint(equalTo: surface.topAnchor, constant: 2),
@@ -292,15 +317,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     func updateTabLabels() {
         for tab in tabs {
             let b = tabButtons[tab.snapshot.id]
-            b?.title = (tab.dirty ? "● " : "") + tab.snapshot.title
+            b?.title = (tab.dirty ? "● " : "") + displayTitle(tab)
             b?.contentTintColor = tab.snapshot.id == selectedID ? .labelColor : .secondaryLabelColor
             b?.font = .systemFont(ofSize: 13, weight: tab.snapshot.id == selectedID ? .semibold : .regular)
             tabSurfaces[tab.snapshot.id]?.selected = tab.snapshot.id == selectedID
             b?.toolTip = tab.url?.path ?? tab.snapshot.title
-            b?.setAccessibilityLabel(tab.snapshot.title + (tab.dirty ? L(", изменён") : ""))
+            b?.setAccessibilityLabel(displayTitle(tab) + (tab.dirty ? L(", изменён") : ""))
         }
         if let selectedID, let button = tabButtons[selectedID] { button.scrollToVisible(button.bounds) }
-        window.title = (current?.snapshot.title ?? "Notepad Mac") + " — Notepad Mac"
+        rebuildProjects()
+        window.title = (current.map(displayTitle) ?? "Notepad Mac") + " — Notepad Mac"
         window.isDocumentEdited = current?.dirty ?? false
         window.representedURL = current?.url
     }
@@ -309,8 +335,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @objc func nextTab(_ sender: Any?) { cycleTab(1) }
     @objc func previousTab(_ sender: Any?) { cycleTab(-1) }
     func cycleTab(_ step: Int) {
-        guard let index = tabs.firstIndex(where: { $0.snapshot.id == selectedID }), !tabs.isEmpty else { return }
-        select(tabs[(index + step + tabs.count) % tabs.count])
+        let group = visibleTabs
+        guard let index = group.firstIndex(where: { $0.snapshot.id == selectedID }), !group.isEmpty else { return }
+        select(group[(index + step + group.count) % group.count])
     }
     @objc func openDocument(_ sender: Any?) {
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = true; panel.canChooseDirectories = false
@@ -338,7 +365,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @discardableResult func save(_ tab: EditorTab, choosePath: Bool) -> Bool {
         var destination = tab.url
         if choosePath {
-            let panel = NSSavePanel(); panel.nameFieldStringValue = tab.url?.lastPathComponent ?? "Untitled.txt"
+            let panel = NSSavePanel(); panel.nameFieldStringValue = tab.url?.lastPathComponent ?? (displayTitle(tab) + ".txt")
             panel.directoryURL = tab.url?.deletingLastPathComponent(); panel.canCreateDirectories = true
             guard panel.runModal() == .OK, let url = panel.url else { return false }
             destination = url.standardizedFileURL.resolvingSymlinksInPath()
@@ -359,7 +386,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             }
             let data = try TextCodec.encode(tab.textView.string, encoding: tab.snapshot.encoding, lineEnding: tab.snapshot.lineEnding)
             try data.write(to: destination, options: .atomic)
-            tab.snapshot.path = destination.path; tab.snapshot.title = destination.lastPathComponent
+            tab.snapshot.path = destination.path
+            if tab.snapshot.projectID == nil { tab.snapshot.title = destination.lastPathComponent }
             tab.snapshot.savedText = tab.textView.string; tab.savedEncoding = tab.snapshot.encoding; tab.savedEnding = tab.snapshot.lineEnding
             tab.snapshot.diskModified = try FileManager.default.attributesOfItem(atPath: destination.path)[.modificationDate] as? Date
             NSDocumentController.shared.noteNewRecentDocumentURL(destination)
@@ -378,10 +406,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             if response == .alertSecondButtonReturn { return }
             if response == .alertFirstButtonReturn && !save(tab, choosePath: tab.url == nil) { return }
         }
-        let index = tabs.firstIndex(where: { $0 === tab }) ?? 0
+        let index = visibleTabs.firstIndex(where: { $0 === tab }) ?? 0
         tab.highlightWork?.cancel(); tabs.removeAll { $0 === tab }
-        if tabs.isEmpty { newDocument(nil) }
-        else if selectedID == tab.snapshot.id { select(tabs[min(index, tabs.count - 1)]) }
+        if visibleTabs.isEmpty { newDocument(nil) }
+        else if selectedID == tab.snapshot.id { select(visibleTabs[min(index, visibleTabs.count - 1)]) }
         rebuildTabs(); persist()
     }
 
@@ -528,14 +556,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @objc func filterTabList() {
         tabListRows.arrangedSubviews.forEach { tabListRows.removeArrangedSubview($0); $0.removeFromSuperview() }
         let query = tabListSearch.stringValue
-        for tab in tabs where query.isEmpty || (tab.url?.path ?? tab.snapshot.title).localizedCaseInsensitiveContains(query) {
-            let entry = button((tab.snapshot.id == selectedID ? "✓ " : "") + (tab.dirty ? "● " : "") + tab.snapshot.title, #selector(chooseListedTab(_:)))
+        for tab in visibleTabs where query.isEmpty || (tab.url?.path ?? displayTitle(tab)).localizedCaseInsensitiveContains(query) {
+            let entry = button((tab.snapshot.id == selectedID ? "✓ " : "") + (tab.dirty ? "● " : "") + displayTitle(tab), #selector(chooseListedTab(_:)))
             entry.setButtonType(.pushOnPushOff); entry.state = tab.snapshot.id == selectedID ? .on : .off
             entry.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString); entry.alignment = .left; entry.lineBreakMode = .byTruncatingMiddle
             entry.toolTip = tab.url?.path ?? tab.snapshot.title
             tabListRows.addArrangedSubview(entry); entry.widthAnchor.constraint(equalTo: tabListRows.widthAnchor).isActive = true
         }
-        tabListPanel?.title = L("Все вкладки…") + " · \(tabListRows.arrangedSubviews.count) / \(tabs.count)"
+        tabListPanel?.title = L("Все вкладки…") + " · \(tabListRows.arrangedSubviews.count) / \(visibleTabs.count)"
         if tabListRows.arrangedSubviews.isEmpty {
             let empty = NSTextField(labelWithString: InterfaceLanguage.english ? "No matching tabs" : "Вкладки не найдены")
             empty.font = .systemFont(ofSize: 13); empty.textColor = .secondaryLabelColor
@@ -581,7 +609,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
                 snapshot.savedEncoding = tab.savedEncoding; snapshot.savedLineEnding = tab.savedEnding
                 return snapshot
             }
-            try SessionStore.save(Session(tabs: snapshots, selected: selectedID), to: sessionURL)
+            var session = Session(tabs: snapshots, selected: selectedID, projects: projects, selectedProject: selectedProjectID)
+            session.looseSelected = looseSelected
+            try SessionStore.save(session, to: sessionURL)
             return true
         } catch {
             if !didWarnPersistence { didWarnPersistence = true; showError(EditorError.message(L("Не удалось сохранить сессию: \(error.localizedDescription). Сохраните важные вкладки в файлы."))) }
@@ -592,6 +622,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         guard FileManager.default.fileExists(atPath: sessionURL.path) else { return }
         do {
             let session = try SessionStore.load(from: sessionURL)
+            if session.projects == nil {
+                let backup = sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-projects.json")
+                if !FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.copyItem(at: sessionURL, to: backup) }
+            }
+            projects = session.projects ?? []; selectedProjectID = session.selectedProject; looseSelected = session.looseSelected
             for var snapshot in session.tabs {
                 let clean = snapshot.text == snapshot.savedText && (snapshot.savedEncoding ?? snapshot.encoding) == snapshot.encoding && (snapshot.savedLineEnding ?? snapshot.lineEnding) == snapshot.lineEnding
                 if clean, let path = snapshot.path, let data = try? Data(contentsOf: URL(fileURLWithPath: path)), let decoded = try? TextCodec.decode(data) {
@@ -599,6 +634,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
                     snapshot.savedEncoding = decoded.encoding; snapshot.savedLineEnding = decoded.lineEnding
                     snapshot.diskModified = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date
                 }
+                if !projects.contains(where: { $0.id == snapshot.projectID }) { snapshot.projectID = nil }
                 let tab = EditorTab(snapshot, fontSize: fontSize, wrap: wrap)
                 tab.savedEncoding = snapshot.savedEncoding ?? snapshot.encoding; tab.savedEnding = snapshot.savedLineEnding ?? snapshot.lineEnding
                 tab.textView.delegate = self; tabs.append(tab)

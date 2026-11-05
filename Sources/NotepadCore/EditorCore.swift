@@ -95,6 +95,7 @@ public struct SessionTab: Codable {
     public var savedLineEnding: LineEnding?
     public var diskModified: Date?
     public var title: String
+    public var projectID: UUID?
     public init(id: UUID = UUID(), path: String? = nil, text: String = "", savedText: String = "", encoding: TextEncoding = .utf8, lineEnding: LineEnding = .lf, selection: Int = 0, diskModified: Date? = nil, title: String = "Без имени") {
         self.id = id; self.path = path; self.text = text; self.savedText = savedText
         self.encoding = encoding; self.lineEnding = lineEnding; self.selection = selection
@@ -102,10 +103,25 @@ public struct SessionTab: Codable {
     }
 }
 
+public struct SessionProject: Codable {
+    public var id: UUID
+    public var title: String
+    public var selected: UUID?
+    public var collapsed: Bool?
+    public init(id: UUID = UUID(), title: String, selected: UUID? = nil) {
+        self.id = id; self.title = title; self.selected = selected
+    }
+}
+
 public struct Session: Codable {
     public var tabs: [SessionTab]
     public var selected: UUID?
-    public init(tabs: [SessionTab], selected: UUID?) { self.tabs = tabs; self.selected = selected }
+    public var projects: [SessionProject]?
+    public var selectedProject: UUID?
+    public var looseSelected: UUID?
+    public init(tabs: [SessionTab], selected: UUID?, projects: [SessionProject]? = nil, selectedProject: UUID? = nil) {
+        self.tabs = tabs; self.selected = selected; self.projects = projects; self.selectedProject = selectedProject
+    }
 }
 
 public enum SessionStore {

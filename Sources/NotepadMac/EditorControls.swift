@@ -101,3 +101,10 @@ final class TabSurface: NSView {
 final class EditorListStack: NSStackView {
     override var isFlipped: Bool { true }
 }
+
+final class RenamableButton: NSButton {
+    var onRename: (() -> Void)?
+    override func mouseDown(with event: NSEvent) {
+        if event.clickCount == 2 { onRename?() } else { super.mouseDown(with: event) }
+    }
+}

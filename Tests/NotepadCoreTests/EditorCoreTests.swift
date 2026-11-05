@@ -129,6 +129,7 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         tests.testKafkaKeywordsAndFunctions()
         tests.testDollarQuotesAndUnicodeQuery()
         try tests.testSessionRemembersLanguageAndReadsOlderSessions()
+        ProjectTests.run()
         try FormattingTests.run()
         let updates = UpdateTests()
         updates.testVersionOrdering()

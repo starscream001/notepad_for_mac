@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru" class="document-root">
+<head><meta charset="utf-8"><title>HTML layout check</title>
+<style>
+html.document-root { background:#fff; color:#172033; font:16px/1.5 system-ui; }
+body.page { margin:0; padding:24px; background:#f0f5fa; }
+.hero { background:#17324b; color:white; padding:24px; border-radius:12px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0; }
+.card {padding:16px;background:white;border:1px solid #cad5e2;border-radius:8px;}
+table{border-collapse:collapse;width:100%;background:white}td,th{border:1px solid #cad5e2;padding:8px;text-align:left}
+</style></head><body class="page" dir="ltr">
+<div class="hero"><h1>Предпросмотр HTML</h1><p>Стили страницы и атрибуты body сохранены.</p></div>
+<div class="cards"><div class="card">Grid · карточка 1</div><div class="card">Grid · карточка 2</div></div>
+<table><tr><th>Формат</th><th>Статус</th></tr><tr><td>HTML + CSS</td><td>Офлайн</td></tr></table>
+<p><a href="#details">Внутренняя ссылка</a></p><h2 id="details">Форма как макет</h2>
+<form><label>Имя <input placeholder="Введите текст"></label><button type="button">Кнопка</button></form>
+<script>document.body.dataset.unwantedScript='executed';</script>
+</body></html>
