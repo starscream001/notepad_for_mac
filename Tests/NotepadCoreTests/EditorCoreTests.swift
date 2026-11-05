@@ -132,6 +132,7 @@ func XCTAssertThrowsError<T>(_ expression: @autoclosure () throws -> T, file: St
         ProjectTests.run()
         try GitHubIdentityTests.run()
         try SyncScriptTests.run()
+        SyncFailureTests.run()
         try FormattingTests.run()
         let updates = UpdateTests()
         updates.testVersionOrdering()

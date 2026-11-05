@@ -132,7 +132,7 @@ private struct GitHubKeychain {
         let prefix="https://api.github.com/repos/"+profile.login+"/"+repo
         func api(_ path:String,_ method:String="GET",_ body:[String:Any]?=nil) async throws -> [String:Any] {
             try Task.checkCancellation();guard epoch==self.generation else { throw CancellationError() }
-            let data=try await self.request(prefix+path,token:saved.token,json:body,method:method,maximum:8*1024*1024)
+            let data=try await self.request(prefix+path,token:saved.token,json:body,method:method,maximum:8*1024*1024,syncStage:path.isEmpty ? "repository" : path.hasPrefix("/git/ref/heads/") ? "branch" : method == "PATCH" ? "update" : method == "POST" ? "write" : "read")
             guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else { throw GitHubIdentityError.invalidResponse };return value
         }
         func sha(_ value:Any?) throws -> String { guard let s=value as? String,s.range(of:"^[0-9a-f]{40,64}$",options:.regularExpression) != nil else { throw GitHubIdentityError.invalidResponse };return s }
@@ -162,7 +162,7 @@ private struct GitHubKeychain {
         try JSONSerialization.data(withJSONObject:cache).write(to:cacheURL,options:.atomic)
         return (merged.1+applied.1,applied.0 != merged.0)
     }
-    private func request(_ url: String, form: [String: String]? = nil, token: String? = nil, json: [String: Any]? = nil, method: String? = nil, maximum: Int = 65536) async throws -> Data {
+    private func request(_ url: String, form: [String: String]? = nil, token: String? = nil, json: [String: Any]? = nil, method: String? = nil, maximum: Int = 65536, syncStage: String? = nil) async throws -> Data {
         var request = URLRequest(url: URL(string: url)!); request.setValue("application/json", forHTTPHeaderField: "Accept"); request.setValue("Notepad-Mac", forHTTPHeaderField: "User-Agent")
         if let form {
             request.httpMethod = "POST"; request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -174,6 +174,7 @@ private struct GitHubKeychain {
         if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization"); request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version") }
         let (bytes, response) = try await session.bytes(for: request)
         guard let response = response as? HTTPURLResponse else { throw GitHubIdentityError.network }
+        if let syncStage, ![200,201].contains(response.statusCode) { throw GitHubSyncHTTPFailure(status:response.statusCode,stage:syncStage,rateLimited:response.value(forHTTPHeaderField:"X-RateLimit-Remaining") == "0" || response.statusCode == 429 || response.value(forHTTPHeaderField:"Retry-After") != nil) }
         if json != nil, response.statusCode == 422 { throw GitHubRepositoryError.nameUnavailable }
         if json != nil, response.statusCode == 403 { throw GitHubRepositoryError.permission }
         if response.statusCode == 401 { throw GitHubIdentityError.unauthorized }
