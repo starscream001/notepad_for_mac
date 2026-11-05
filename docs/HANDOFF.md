@@ -154,3 +154,12 @@ Owner clarified sync failure: notepad-notes was NOT created yet. Explained in-ap
 
 
 FINAL MOBILE CHECKPOINT: mobile-v0.10.0-beta.1 PUBLIC prerelease, run42105213434 all four jobs success (prepare/Android/iOS/publish). Source405e8bd100200b2c8630e9dbfcd832f1f5638fb4. Four uploaded assets: Android debug APK8,049,948 bytes, iOS Simulator ZIP6,380,018 bytes + SHA256 each. Latest stable desktop remains v0.9.4,8 assets. Preliminary APK from earlier CI was replaced in outputs by public release APK; do not use prior debug builds as persistent production signing. User notes repository did not yet exist; explained create via connection options before sync. Next mobile steps: physical-device QA, stable signing/TestFlight, then GitHub Device Flow with native secure credentials + shared merge; no fake sign-in buttons.
+
+
+## Mobile beta.2 — активная задача
+
+Владелец: Android14, не нажимается Auto/не хватает команд, нет login; планшетная клавиатура закрывает экран. Реализованы button→format dialog, preview chooser md/html/text и back editor, Menu label+Undo/Redo/notes list, native adjustResize и viewport height guard. Browser393×852: Auto selection и Markdown preview без extension проверены, Menu/GitHub видны.
+
+GitHub native credentials plugin: mobile/native/android/NotepadCredentialsPlugin.java (AES-GCM key AndroidKeyStore + ciphertext SharedPrefs, no plaintext fallback), native/ios/NotepadViewController.swift (Keychain + bridge registration). prepare.mjs injects source/manifest/storyboard/PBX; build100002. GitHubAuth pure module injected native HTTP/browser/storage, empty GitHubApp scope, epoch cancellation, serialized protected writes; sync browser-safe port of desktop GitData protocol. UI confirms repo creation/all-note upload, base cache local before-sync backup. loggingBehavior=none to prevent native bridge token logs. 16 unit tests pass; emulator Android14 tablet instrumented smoke test added to CI. Real user OAuth/sync not performed.
+
+Separate mobile release beta.2; desktop stays0.9.4. CI now filters mobile-only changes from desktop rebuilds. New APK debug key may differ from beta.1; tell owner export backup before reinstall. Native compile/emulator outcome still pending at this checkpoint.

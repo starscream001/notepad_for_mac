@@ -62,10 +62,39 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk "release/Notepad-Mobile-$version-Android-debug.apk"
           cd release
           sha256sum *.apk > "Notepad-Mobile-$version-Android-debug.apk.sha256"
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify controls and keyboard on Android 14 tablet
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_c
+          working-directory: mobile/android
+          ram-size: 2048M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          script: |
+            adb shell settings put secure show_ime_with_hard_keyboard 1
+            ./gradlew --no-daemon connectedDebugAndroidTest
+            adb pull /sdcard/Android/data/io.github.starscream001.notepad.mobile/files/android14-tablet-keyboard.png ../release/android14-tablet-keyboard.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Notepad-Mobile-Android-QA
+          path: |
+            mobile/android/app/build/reports/androidTests/
+            mobile/release/android14-tablet-keyboard.png
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: Notepad-Mobile-Android
-          path: mobile/release/*
+          path: |
+            mobile/release/*.apk
+            mobile/release/*.sha256
           retention-days: 7
   ios:
     needs: prepare
@@ -117,7 +146,12 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          pattern: Notepad-Mobile-*
+          pattern: Notepad-Mobile-Android
+          path: mobile/release
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: Notepad-Mobile-iOS-Simulator
           path: mobile/release
           merge-multiple: true
       - name: Publish mobile prerelease

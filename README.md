@@ -84,14 +84,14 @@
 | **Windows x64** | [Скачать Setup EXE](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Windows-x64-Setup.exe) | Запустить → установить для себя |
 | **Linux x64** | [AppImage](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Linux-x64.AppImage) · [deb](https://github.com/starscream001/notepad_for_mac/releases/download/v0.9.4/Notepad-Desktop-0.9.4-Linux-x64.deb) | Разрешить выполнение AppImage или установить deb |
 
-**Мобильная beta · 0.10.0-beta.1**
+**Мобильная beta · 0.10.0-beta.2**
 
 | Платформа | Тестовая сборка | Статус |
 | --- | --- | --- |
-| **Android 7+ · телефоны и планшеты** | [Скачать APK](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.1/Notepad-Mobile-0.10.0-beta.1-Android-debug.apk) | Локальные заметки, проекты, просмотр Markdown/HTML; debug beta |
-| **iPhone / iPad · iOS 16+** | [Исходники и инструкция](mobile/README.md) · [Simulator ZIP](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1) | Simulator ZIP только для Xcode; TestFlight пока не настроен |
+| **Android 7+ · телефоны и планшеты** | [Скачать APK](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.2/Notepad-Mobile-0.10.0-beta.2-Android-debug.apk) | Локальные заметки, проекты, просмотр Markdown/HTML; debug beta |
+| **iPhone / iPad · iOS 16+** | [Исходники и инструкция](mobile/README.md) · [Simulator ZIP](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2) | Simulator ZIP только для Xcode; TestFlight пока не настроен |
 
-Мобильная beta работает локально: **GitHub-вход и синхронизация ещё не подключены**. Импорт/экспорт резервной копии — вручную. Перед переустановкой beta экспортируйте заметки: тестовая подпись APK между сборками может измениться. [Установка и ограничения](mobile/README.md).
+Мобильная beta работает локально; **Меню → GitHub** подключает вход через браузер, создание приватного репозитория и ручную синхронизацию с desktop. «Авто» открывает список форматов, «Просмотр» предлагает Markdown, HTML или текст/код. Перед переустановкой beta экспортируйте заметки: тестовая подпись APK между сборками может измениться. [Установка и ограничения](mobile/README.md).
 
 [Установка командой через GitHub CLI и план WinGet/Homebrew/Flathub](packaging/README.md). В центральных каталогах пакетов приложение пока не зарегистрировано.
 
@@ -246,4 +246,4 @@ Finder может показывать имя приложения без рас
 
 <p align="center">Notepad · macOS / Windows / Linux · <a href="LICENSE">MIT</a></p>
 
-**Мобильная beta 0.10.0-beta.1:** отдельная оболочка телефона и планшета, локальные проекты и заметки, подсветка, поиск, Markdown/HTML-просмотр и импорт/экспорт. [Мобильный релиз](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1).
+**Мобильная beta 0.10.0-beta.2:** исправлены выбор формата и доступность команд; предпросмотр без переименования заметки, вход/синхронизация GitHub и изменение размера рабочей области под экранную клавиатуру Android. [Мобильный релиз](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2).
