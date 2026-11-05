@@ -165,3 +165,6 @@ GitHub native credentials plugin: mobile/native/android/NotepadCredentialsPlugin
 Separate mobile release beta.2; desktop stays0.9.4. CI now filters mobile-only changes from desktop rebuilds. New APK debug key may differ from beta.1; tell owner export backup before reinstall. Native compile/emulator outcome still pending at this checkpoint.
 
 Beta.2 CI42114917802: iOS compile SUCCESS, Android compile SUCCESS. Our NotepadSmokeTest Android14 tablet PASSED (2tests total,1failed was generated Capacitor ExampleInstrumentedTest hardcoded expected com.getcapacitor.app). Fix prepare.mjs to replace template expected package with actual application ID. Screenshot was created on emulator but pull skipped after unrelated template failure; rerun required for full pass/publication.
+
+### Mobile beta.2 — уточнение CI
+Android 14: тест приложения прошёл, общий Gradle task дополнительно запускал тестовые APK служебных Capacitor-модулей с конфликтующими Kotlin-зависимостями. Workflow запускает `:app:connectedDebugAndroidTest`: все instrumentation-тесты приложения, включая настоящий IME и защищённое хранилище. Финальная публикация ожидает повторного CI.

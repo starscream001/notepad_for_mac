@@ -79,7 +79,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           script: |
             adb shell settings put secure show_ime_with_hard_keyboard 1
-            ./gradlew --no-daemon connectedDebugAndroidTest
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest
             adb pull /sdcard/Android/data/io.github.starscream001.notepad.mobile/files/android14-tablet-keyboard.png ../release/android14-tablet-keyboard.png
       - uses: actions/upload-artifact@v4
         if: always()
