@@ -11,6 +11,7 @@ import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity { @Override public void onCreate(Bundle state){registerPlugin(NotepadCredentialsPlugin.class);super.onCreate(state);} }
 `);
+ const templateTest='android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java';if(existsSync(templateTest)){const source=await readFile(templateTest,'utf8');await writeFile(templateTest,source.replace(/com\.getcapacitor\.app/g,'io.github.starscream001.notepad.mobile'));}
  const manifest='android/app/src/main/AndroidManifest.xml';s=await readFile(manifest,'utf8');s=s.replace(/android:windowSoftInputMode="[^"]*"/g,'');s=s.replace('<activity','<activity android:windowSoftInputMode="adjustResize"');s=s.replace('android:allowBackup="true"','android:allowBackup="false"');s=s.replace(/android:icon="[^"]+"/,'android:icon="@drawable/notepad_logo"').replace(/android:roundIcon="[^"]+"/,'android:roundIcon="@drawable/notepad_logo"');await writeFile(manifest,s);
 }else{
  const icon=spawnSync('sips',['-z','1024','1024','../Resources/AppIcon.png','--out','ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'],{stdio:'inherit'});if(icon.status!==0)throw Error('iOS icon generation failed');
