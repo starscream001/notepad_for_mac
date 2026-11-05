@@ -42,12 +42,14 @@ public class NotepadSmokeTest {
         float scale=web.getWidth()/(float)r.getDouble("w"),x=origin[0]+(float)r.getDouble("x")*scale,y=origin[1]+(float)r.getDouble("y")*scale;
         long now=SystemClock.uptimeMillis();MotionEvent down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0),up=MotionEvent.obtain(now,now+80,MotionEvent.ACTION_UP,x,y,0);
         down.setSource(InputDevice.SOURCE_TOUCHSCREEN);up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        instrumentation.getUiAutomation().injectInputEvent(down,true);instrumentation.getUiAutomation().injectInputEvent(up,true);down.recycle();up.recycle();SystemClock.sleep(200);
+        instrumentation.getUiAutomation().injectInputEvent(down,true);SystemClock.sleep(80);instrumentation.getUiAutomation().injectInputEvent(up,true);down.recycle();up.recycle();SystemClock.sleep(200);
     }
     @Test public void android14TabletControlsPreviewCredentialsAndKeyboard() throws Exception {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             scenario.onActivity(a->{activity=a;web=a.getBridge().getWebView();});
             waitFor("document.querySelector('#save-state')?.textContent.includes('На устройстве') && !!document.querySelector('.cm-content')");
+            // Capacitor native launch splash can still intercept touches after the DOM is ready.
+            SystemClock.sleep(3500);instrumentation.waitForIdleSync();
             assertEquals("true",js("matchMedia('(min-width:840px)').matches"));
             tap("#syntax");waitFor("document.querySelector('#format-dialog').open");
             tap("#format-choices button:nth-child(3)");waitFor("!document.querySelector('#format-dialog').open && document.querySelector('#syntax').textContent.includes('Markdown')");
