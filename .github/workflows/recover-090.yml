@@ -28,3 +28,5 @@ jobs:
         run: |
           test "$(cat VERSION)" = 0.9.0
           ./scripts/publish.sh
+
+# Drafts without an existing tag are located through the releases collection.

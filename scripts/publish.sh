@@ -48,7 +48,7 @@ publish_version() {
   for file in "$stage/Notepad-Mac-universal.zip" "$stage/Notepad-Mac-universal.zip.sha256" "${extras[@]}"; do
     asset="$(basename "$file")"
     digest="$(sha256sum "$file" | cut -d ' ' -f 1)"
-    remote="$(gh api "repos/$GH_REPO/releases/tags/v$version" --jq ".assets[] | select(.name == \"$asset\") | [.digest, .size, .state] | @tsv")"
+    remote="$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate --jq ".[] | select(.tag_name == \"v$version\") | .assets[] | select(.name == \"$asset\") | [.digest, .size, .state] | @tsv")"
     expected="$(printf 'sha256:%s\t%s\tuploaded' "$digest" "$(wc -c < "$file" | tr -d ' ')")"
     if [[ -n "$remote" ]]; then
       [[ "$remote" == "$expected" ]] || { echo "Draft asset mismatch: $asset; refusing replacement."; return 1; }
