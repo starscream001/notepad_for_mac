@@ -20,15 +20,16 @@ import NotepadCore
 @MainActor extension AppDelegate {
     func portableNotes() throws -> String {
         let records=tabs.map { $0.capture() } + archivedTabs
-        return try SyncEngine.clean(["schema":1,"deleted":deletedNoteIDs.map { $0.uuidString.lowercased() },"projects":projects.map { ["id":$0.id.uuidString.lowercased(),"title":$0.title] },"tabs":records.map { tab -> [String:Any] in ["id":tab.id.uuidString.lowercased(),"projectId":tab.projectID.map { $0.uuidString.lowercased() } as Any? ?? NSNull(),"title":tab.title,"text":tab.text] }])
+        return try SyncEngine.clean(["schema":1,"deletedProjects":deletedProjectIDs.map { $0.uuidString.lowercased() },"deleted":deletedNoteIDs.map { $0.uuidString.lowercased() },"projects":projects.map { ["id":$0.id.uuidString.lowercased(),"title":$0.title] },"tabs":records.map { tab -> [String:Any] in ["id":tab.id.uuidString.lowercased(),"projectId":tab.projectID.map { $0.uuidString.lowercased() } as Any? ?? NSNull(),"title":tab.title,"text":tab.text] }])
     }
     func applyCloudNotes(_ text: String) throws {
         guard let object = try JSONSerialization.jsonObject(with:Data(text.utf8)) as? [String:Any],let ps=object["projects"] as? [[String:Any]],let ts=object["tabs"] as? [[String:Any]] else { throw GitHubIdentityError.invalidResponse }
         guard persist() else { throw GitHubIdentityError.storage }
         let backup=sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-sync.json")
         try Data(contentsOf:sessionURL).write(to:backup,options:.atomic)
-        let oldProjects=projects,oldTabs=tabs,oldSnapshots=tabs.map { $0.capture() },oldArchive=archivedTabs,oldDeleted=deletedNoteIDs
+        let oldProjects=projects,oldTabs=tabs,oldSnapshots=tabs.map { $0.capture() },oldArchive=archivedTabs,oldDeleted=deletedNoteIDs,oldDeletedProjects=deletedProjectIDs
         deletedNoteIDs=Set((object["deleted"] as? [String] ?? []).compactMap(UUID.init(uuidString:)))
+        deletedProjectIDs=Set((object["deletedProjects"] as? [String] ?? []).compactMap(UUID.init(uuidString:)))
         let oldSelected=selectedID
         projects=try ps.map { p in guard let id=(p["id"] as? String).flatMap(UUID.init(uuidString:)),let title=p["title"] as? String else { throw GitHubIdentityError.invalidResponse };var project=oldProjects.first { $0.id==id } ?? SessionProject(id:id,title:title);project.title=title;return project }
         var next:[EditorTab]=[];var nextArchive:[SessionTab]=[]
@@ -41,26 +42,42 @@ import NotepadCore
         }
         tabs=next;archivedTabs=nextArchive
         guard persist() else {
-            projects=oldProjects;tabs=oldTabs;archivedTabs=oldArchive;deletedNoteIDs=oldDeleted;for (tab,snapshot) in zip(tabs,oldSnapshots) { tab.snapshot=snapshot;tab.textView.string=snapshot.text };throw GitHubIdentityError.storage
+            projects=oldProjects;tabs=oldTabs;archivedTabs=oldArchive;deletedNoteIDs=oldDeleted;deletedProjectIDs=oldDeletedProjects;for (tab,snapshot) in zip(tabs,oldSnapshots) { tab.snapshot=snapshot;tab.textView.string=snapshot.text };throw GitHubIdentityError.storage
         }
-        if let tab=tabs.first(where:{$0.snapshot.id==oldSelected}) ?? tabs.first { select(tab) };rebuildTabs();updateTabLabels();schedulePersistence()
+        if !projects.contains(where:{$0.id==selectedProjectID}) { selectedProjectID=nil }
+        if let tab=visibleTabs.first(where:{$0.snapshot.id==oldSelected}) ?? visibleTabs.first { select(tab) } else { showEmptyProject() };rebuildTabs();updateTabLabels();schedulePersistence()
     }
 }
 
 @MainActor extension AppDelegate {
     @objc func showGitHubSync() {
-        showPreferences()
-        if githubAccount.profile != nil { githubSettingsView?.synchronize() }
+        if let synchronizationPanel { synchronizationPanel.makeKeyAndOrderFront(nil);return }
+        let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:410,height:540),styleMask:[.titled,.closable],backing:.buffered,defer:false)
+        panel.title=InterfaceLanguage.english ? "Synchronization" : "Синхронизация";panel.isReleasedWhenClosed=false
+        let stack=EditorListStack();stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=16;stack.edgeInsets=NSEdgeInsets(top:24,left:24,bottom:24,right:24)
+        let provider=button("GitHub ›",#selector(toggleGitHubOptions(_:)))
+        provider.setAccessibilityLabel("GitHub");stack.addArrangedSubview(provider)
+        let view=GitHubSettingsView(account:githubAccount);githubSettingsView=view;view.isHidden=true;stack.addArrangedSubview(view)
+        let scroll=NSScrollView();scroll.hasVerticalScroller=true;scroll.autohidesScrollers=true;scroll.drawsBackground=false;scroll.documentView=stack;stack.translatesAutoresizingMaskIntoConstraints=false
+        NSLayoutConstraint.activate([stack.widthAnchor.constraint(equalToConstant:410),stack.leadingAnchor.constraint(equalTo:scroll.contentView.leadingAnchor),stack.topAnchor.constraint(equalTo:scroll.contentView.topAnchor)])
+        panel.contentView=scroll;synchronizationPanel=panel;panel.center();panel.makeKeyAndOrderFront(nil)
     }
-    @objc func deleteNote() {
-        guard let tab=current else { return }
-        let alert=NSAlert();alert.messageText=InterfaceLanguage.english ? "Delete note?" : "Удалить заметку?"
+    @objc func toggleGitHubOptions(_ sender:NSButton) {
+        guard let view=githubSettingsView else { return };view.isHidden.toggle();sender.title=view.isHidden ? "GitHub ›" : "GitHub ⌄"
+    }
+    @objc func deleteNote() { if let id=current?.snapshot.id { removeNote(id) } }
+    func backupBeforeDelete() -> Bool {
+        guard persist() else { return false }
+        do { try Data(contentsOf:sessionURL).write(to:sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-delete.json"),options:.atomic);return true } catch { showError(error);return false }
+    }
+    func removeNote(_ id:UUID) {
+        guard let title=tabs.first(where:{$0.snapshot.id==id})?.snapshot.title ?? archivedTabs.first(where:{$0.id==id})?.title else { return }
+        let alert=NSAlert();alert.messageText=InterfaceLanguage.english ? "Delete note \(title)?" : "Удалить заметку «\(title)»?"
         alert.informativeText=InterfaceLanguage.english ? "The note is removed locally and from GitHub after synchronization. An external file on disk is kept." : "Заметка удалится локально, а после синхронизации — из GitHub. Внешний файл на диске не удаляется."
         alert.addButton(withTitle:InterfaceLanguage.english ? "Cancel" : "Отмена");alert.addButton(withTitle:InterfaceLanguage.english ? "Delete" : "Удалить")
-        guard alert.runModal() == .alertSecondButtonReturn else { return }
-        guard persist() else { return }
-        do { try Data(contentsOf:sessionURL).write(to:sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-delete.json"),options:.atomic) } catch { showError(error);return }
-        deletedNoteIDs.insert(tab.snapshot.id);archivedTabs.removeAll { $0.id==tab.snapshot.id };tabs.removeAll { $0 === tab }
-        if let next=visibleTabs.first { select(next) } else { newDocument(nil) };rebuildTabs();persist()
+        guard alert.runModal() == .alertSecondButtonReturn, backupBeforeDelete() else { return }
+        tabs.first(where:{$0.snapshot.id==id})?.highlightWork?.cancel()
+        deletedNoteIDs.insert(id);archivedTabs.removeAll { $0.id==id };tabs.removeAll { $0.snapshot.id==id }
+        if selectedID==id { if let next=visibleTabs.first { select(next) } else { showEmptyProject() } };rebuildTabs();persist()
     }
 }

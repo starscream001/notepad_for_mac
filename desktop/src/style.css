@@ -1,113 +1,85 @@
-import AppKit
-import NotepadCore
+:root{color-scheme:dark;--bg:#18192b;--panel:#212237;--editor:#171823;--text:#efeee9;--muted:#b0b0c4;--border:#42445e;--accent:#eda55f;--hover:#30324a;font:13px/1.5 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--text)}body.light{color-scheme:light;--bg:#f2f1ed;--panel:#faf9f6;--editor:#fff;--text:#222436;--muted:#606277;--border:#c9cad3;--accent:#a65412;--hover:#e7e5df}button,select{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:background .15s}button:hover{background:var(--hover)}button:active{filter:brightness(.9)}button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button.primary{background:var(--accent);color:#171823;border-color:transparent;font-weight:650}.light button.primary{color:#fff}button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}.brand{display:flex;align-items:center;gap:9px;font-weight:650;margin-right:16px}.actions{display:flex;gap:8px}.muted{color:var(--muted)}.spacer{flex:1;min-width:0}nav{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:6px 12px;min-height:42px;flex-shrink:0}.tab{display:flex;align-items:center;flex:0 0 auto;max-width:240px;border:1px solid transparent;border-radius:9px;background:var(--panel)}.tab.active{border-color:var(--accent);background:var(--hover)}.tab button{border:0;background:transparent;padding:5px 10px}.tab .tab-name{max-width:185px;overflow:hidden;text-overflow:ellipsis;text-align:left}.tab .close{width:24px;height:24px;line-height:24px;margin:3px;padding:0;font-size:18px;color:var(--muted);border-radius:7px}.tab .close:hover{background:var(--border);color:var(--text)}main{display:flex;flex:1;min-height:0;background:var(--editor);border-block:1px solid var(--border)}#editor{flex:1;min-width:0;overflow:hidden}.cm-editor{height:100%;font:14px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}.cm-scroller{overflow:auto}.cm-content{padding:18px 0}.cm-line{padding:0 18px}.cm-editor.cm-focused{outline:none}.cm-gutters{background:var(--editor)!important;color:var(--muted)!important;border:0!important}.cm-gutterElement{padding-left:12px!important;padding-right:12px!important}.cm-panels{background:var(--panel)!important;color:var(--text)!important}.cm-search input{max-width:170px}.cm-search button{font:inherit}#divider{width:7px;background:var(--border);cursor:col-resize;flex-shrink:0}#divider:hover,#divider:focus{background:var(--accent)}#preview-pane{width:50%;min-width:0;display:flex;flex-direction:column;background:var(--editor)}[hidden]{display:none!important}.preview-label{font-size:10px;letter-spacing:.08em;padding:9px 16px;color:var(--accent);border-bottom:1px solid var(--border)}.preview-label span{float:right;color:var(--muted);letter-spacing:0}iframe{border:0;flex:1;width:100%;background:white}.path{font-size:11px;color:var(--muted);padding:7px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}footer{display:flex;align-items:center;gap:12px;padding:7px 16px;border-top:1px solid var(--border);flex-shrink:0;font-size:11px}footer select{padding:4px 6px;max-width:140px}#status{white-space:nowrap}label{display:inline-flex;align-items:center;gap:6px}dialog{color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:20px;max-width:540px;max-height:88vh;padding:32px;overflow:auto;box-shadow:0 24px 90px #0008}dialog::backdrop{background:#0009}dialog h1{font-size:26px;letter-spacing:-.03em;margin:14px 0 4px}dialog small{font-size:14px;color:var(--muted)}dialog h2{font-size:15px}dialog p{line-height:1.7}dialog label{display:flex;margin:12px 0}.dialog-close{position:absolute;right:14px;top:14px;font-size:22px;border:0;padding:0 9px}.link{border:0;padding:0;background:none;color:var(--accent);text-decoration:underline}hr{border:0;border-top:1px solid var(--border);margin:22px 0}#notice{position:fixed;right:20px;bottom:70px;max-width:420px;background:var(--panel);border:1px solid var(--accent);padding:16px;border-radius:12px;box-shadow:0 10px 30px #0004;z-index:10}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:950px){.brand span{display:none}.brand{margin:0}.preview-label span{display:none}footer{gap:6px;padding-inline:10px}header{gap:6px}button{padding-inline:9px}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
-extension AppDelegate {
-    func displayTitle(_ tab: EditorTab) -> String {
-        guard let project = projects.first(where: { $0.id == tab.snapshot.projectID }) else { return tab.snapshot.title }
-        return project.title + "." + tab.snapshot.title
-    }
-    func configureProjects() {
-        projectPane.arrangedSubviews.forEach { projectPane.removeArrangedSubview($0); $0.removeFromSuperview() }
-        projectPane.orientation = .vertical; projectPane.alignment = .leading; projectPane.spacing = 8
-        projectPane.edgeInsets = NSEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
-        if projectPane.constraints.first(where: { $0.firstAttribute == .width }) == nil { projectPane.widthAnchor.constraint(equalToConstant: 190).isActive = true }
-        let title=NSTextField(labelWithString:InterfaceLanguage.english ? "Projects" : "Проекты");title.font = .systemFont(ofSize:12,weight:.semibold);title.textColor = .secondaryLabelColor
-        let add=iconButton(InterfaceLanguage.english ? "New project" : "Создать проект",#selector(createProject),symbol:"plus")
-        let header=NSStackView(views:[title,NSView(),add]);header.orientation = .horizontal;header.alignment = .centerY;header.spacing=6
-        header.widthAnchor.constraint(equalToConstant:170).isActive=true;header.heightAnchor.constraint(equalToConstant:30).isActive=true;projectPane.addArrangedSubview(header)
-        projectRows.orientation = .vertical; projectRows.alignment = .leading; projectRows.spacing = 4
-        let scroll = NSScrollView(); scroll.drawsBackground = false; scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.documentView = projectRows
-        scroll.translatesAutoresizingMaskIntoConstraints = false; projectRows.translatesAutoresizingMaskIntoConstraints = false
-        projectPane.addArrangedSubview(scroll)
-        NSLayoutConstraint.activate([scroll.widthAnchor.constraint(equalTo: projectPane.widthAnchor, constant: -20), scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 80), projectRows.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor), projectRows.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor), projectRows.topAnchor.constraint(equalTo: scroll.contentView.topAnchor)])
-        projectPane.isHidden = UserDefaults.standard.bool(forKey: "projectsHidden")
-        rebuildProjects()
-    }
-    @objc func toggleProjects() {
-        projectPane.isHidden.toggle(); UserDefaults.standard.set(projectPane.isHidden, forKey: "projectsHidden")
-    }
-    func rebuildProjects() {
-        let signature = String(InterfaceLanguage.english) + String(describing: selectedProjectID) + String(describing: selectedID) + projects.map { $0.id.uuidString + $0.title + String($0.collapsed ?? false) }.joined() + tabs.map { $0.snapshot.id.uuidString + $0.snapshot.title + String($0.dirty) }.joined() + archivedTabs.map { $0.id.uuidString + $0.title }.joined()
-        guard signature != projectSignature || projectRows.arrangedSubviews.isEmpty else { return }; projectSignature = signature
-        projectRows.arrangedSubviews.forEach { projectRows.removeArrangedSubview($0); $0.removeFromSuperview() }
-        let groups: [(UUID?, String, Bool)] = [(nil, InterfaceLanguage.english ? "Without project" : "Без проекта", false)] + projects.map { ($0.id, $0.title, $0.collapsed ?? false) }
-        for (id, title, collapsed) in groups {
-            let row = NSStackView(); row.orientation = .horizontal; row.spacing = 4
-            let disclosure = NSButton(title: collapsed ? "›" : "⌄", target: self, action: #selector(collapseProject(_:)))
-            disclosure.isBordered = false; disclosure.identifier = NSUserInterfaceItemIdentifier(id?.uuidString ?? "loose"); disclosure.setAccessibilityLabel(title + (collapsed ? " · expand" : " · collapse"))
-            disclosure.widthAnchor.constraint(equalToConstant: 20).isActive = true
-            if id == nil { disclosure.isEnabled = false }
-            let pick = RenamableButton(title: title, target: self, action: #selector(pickProject(_:)))
-            pick.cell = SidebarNoteCell(textCell: title); pick.target = self; pick.action = #selector(pickProject(_:)); pick.identifier = disclosure.identifier
-            pick.setButtonType(.pushOnPushOff); pick.state = id == selectedProjectID ? .on : .off; pick.alignment = .left; pick.lineBreakMode = .byTruncatingTail
-            pick.bezelStyle = .smallSquare; pick.font = .systemFont(ofSize: 12, weight: .medium); pick.heightAnchor.constraint(equalToConstant: 30).isActive = true
-            if let id { pick.onRename = { [weak self] in self?.renameProject(id) } }
-            row.addArrangedSubview(disclosure); row.addArrangedSubview(pick); projectRows.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
-            if !collapsed {
-                for tab in tabs where tab.snapshot.projectID == id {
-                    let label = (tab.dirty ? "● " : "") + tab.snapshot.title
-                    let entry = RenamableButton(title: label, target: self, action: #selector(selectTab(_:)))
-                    entry.cell=SidebarNoteCell(textCell:label);entry.target=self;entry.action=#selector(selectTab(_:));entry.bezelStyle = .smallSquare;entry.setButtonType(.pushOnPushOff);entry.state=tab.snapshot.id==selectedID ? .on : .off;entry.isBordered = true; entry.alignment = .left; entry.font = .systemFont(ofSize: 12, weight: tab.snapshot.id == selectedID ? .semibold : .regular); entry.lineBreakMode = .byTruncatingTail
-                    entry.identifier = NSUserInterfaceItemIdentifier(tab.snapshot.id.uuidString); entry.toolTip = displayTitle(tab)
-                    entry.setAccessibilityLabel(displayTitle(tab)); entry.heightAnchor.constraint(equalToConstant: 28).isActive = true
-                    entry.onRename = { [weak self, weak tab] in if let tab { self?.renameTab(tab) } }
-                    addProjectEntry(entry)
-                }
-                for snapshot in archivedTabs where snapshot.projectID == id {
-                    let entry=NSButton(title:snapshot.title,target:self,action:#selector(reopenNote(_:)));entry.isBordered=false;entry.alignment = .left;entry.font = .systemFont(ofSize:12);entry.contentTintColor = .secondaryLabelColor;entry.identifier=NSUserInterfaceItemIdentifier(snapshot.id.uuidString);entry.heightAnchor.constraint(equalToConstant:28).isActive=true;addProjectEntry(entry)
-                }
-            }
-        }
-    }
-    func addProjectEntry(_ entry:NSButton) {
-        let indent=NSView();indent.widthAnchor.constraint(equalToConstant:24).isActive=true
-        let row=NSStackView(views:[indent,entry]);row.orientation = .horizontal;row.alignment = .centerY;row.spacing=0
-        entry.setContentCompressionResistancePriority(.defaultLow,for:.horizontal);entry.setContentHuggingPriority(.defaultLow,for:.horizontal)
-        projectRows.addArrangedSubview(row);row.widthAnchor.constraint(equalTo:projectRows.widthAnchor).isActive=true
-    }
-    @objc func reopenNote(_ sender:NSButton) {
-        guard let index=archivedTabs.firstIndex(where:{$0.id.uuidString==sender.identifier?.rawValue}) else { return };let snapshot=archivedTabs.remove(at:index);let tab=EditorTab(snapshot,fontSize:fontSize,wrap:wrap);tab.textView.delegate=self;tabs.append(tab);select(tab);rebuildTabs();schedulePersistence()
-    }
-    @objc func collapseProject(_ sender: NSButton) {
-        guard let index = projects.firstIndex(where: { $0.id.uuidString == sender.identifier?.rawValue }) else { return }
-        projects[index].collapsed = !(projects[index].collapsed ?? false); rebuildProjects(); schedulePersistence()
-    }
-    @objc func pickProject(_ sender: NSButton) {
-        switchProject(projects.first(where: { $0.id.uuidString == sender.identifier?.rawValue })?.id)
-    }
-    func switchProject(_ id: UUID?) {
-        selectedProjectID = id
-        let remembered = projects.first(where: { $0.id == id })?.selected ?? (id == nil ? looseSelected : nil)
-        if let tab = visibleTabs.first(where: { $0.snapshot.id == remembered }) ?? visibleTabs.first { select(tab) }
-        else { newDocument(nil) }
-        rebuildTabs(); schedulePersistence()
-    }
-    func namePrompt(_ title: String, value: String) -> String? {
-        let alert = NSAlert(); alert.messageText = title
-        let field = NSTextField(string: value); field.frame = NSRect(x: 0, y: 0, width: 300, height: 26)
-        alert.accessoryView = field; alert.addButton(withTitle: InterfaceLanguage.english ? "Save" : "Сохранить"); alert.addButton(withTitle: L("Отмена")); alert.window.initialFirstResponder = field
-        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
-        let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, name.count <= 80, !name.contains("\n"), !name.contains("/"), !name.contains("\\") else { NSSound.beep(); return nil }
-        return name
-    }
-    @objc func createProject() {
-        guard projects.count < 100 else { return }
-        let base = InterfaceLanguage.english ? "Project" : "Проект"
-        var n = 1; while projects.contains(where: { $0.title == "\(base) \(n)" }) { n += 1 }
-        guard let name = namePrompt(InterfaceLanguage.english ? "New project" : "Новый проект", value: "\(base) \(n)") else { return }
-        let project = SessionProject(title: name); projects.append(project); selectedProjectID = project.id; newDocument(nil); rebuildTabs()
-    }
-    func renameProject(_ id: UUID) {
-        guard let index = projects.firstIndex(where: { $0.id == id }), let name = namePrompt(InterfaceLanguage.english ? "Rename project" : "Переименовать проект", value: projects[index].title) else { return }
-        projects[index].title = name; rebuildTabs(); updateTabLabels(); persist()
-    }
-    func renameTab(_ tab: EditorTab) {
-        guard let name = namePrompt(InterfaceLanguage.english ? "Rename tab" : "Переименовать вкладку", value: tab.snapshot.title) else { return }
-        tab.snapshot.title = name; tab.textView.setAccessibilityLabel(name); rebuildTabs(); updateTabLabels(); persist()
-    }
-}
+footer{flex-wrap:wrap;gap:6px 8px;padding:5px 12px}footer select{padding:3px 5px}#status{min-width:125px}#ui-language{max-width:86px}footer label{min-width:0}footer select#language{max-width:128px}@media(max-width:1000px){footer #status{flex-basis:100%}footer>.spacer{display:none}}
+
+#tabs-dialog{width:480px}#tab-filter{width:100%;font:inherit;padding:8px 10px;margin:8px 0 14px;color:var(--text);background:var(--editor);border:1px solid var(--border);border-radius:8px}#tab-results{display:flex;flex-direction:column;gap:5px;max-height:55vh;overflow:auto}#tab-results button{text-align:left;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;flex-shrink:0}
+
+/* Studio B: compact controls with one visual height, quiet surfaces and warm accents. */
+:root{--bg:#1a1b2d;--panel:#232439;--editor:#171825;--border:#38394f;--accent:#eda55f;--hover:#343246}
+body.light{--bg:#f2f2f7;--panel:#e9eaf2;--editor:#fff;--border:#dfe0e8;--accent:#a4551b;--hover:#e0dfec}
+button,select{height:30px;min-height:30px;padding:4px 10px;border:1px solid transparent;border-radius:7px;font-size:13px;line-height:20px}
+button.primary{background:var(--panel);color:var(--text);font-weight:600}body.light button.primary{color:var(--text)}
+header{gap:7px;padding:7px 12px}header .brand{font-size:12px;margin-right:8px}header button{display:inline-flex;align-items:center;justify-content:center}
+#settings{width:32px;padding:5px}#tabs{padding:4px 12px;min-height:40px;background:var(--panel);gap:4px}
+.tab{border:0;background:transparent;border-radius:7px}.tab.active{background:var(--hover)}.tab .tab-name{font-weight:400}.tab.active .tab-name{font-weight:600;color:var(--text)}.tab button{height:30px;min-height:30px}.tab .close{height:24px;min-height:24px;line-height:24px;margin:3px 4px 3px 0}
+footer{padding:6px 12px;background:var(--bg);border-top:1px solid var(--border);gap:6px 8px}footer select{font-size:13px;height:30px;padding:3px 8px;max-width:148px}footer select#language{max-width:145px}footer label:first-of-type{font-size:0}footer label:first-of-type select{font-size:13px}
+.path{padding:4px 12px;background:var(--bg)}.dialog-close{height:30px}#settings-dialog{width:430px}#settings-dialog label{justify-content:space-between}#settings-dialog select{min-width:155px}#settings-dialog h2{font-size:20px}
+@media(max-width:1100px){header .brand span{display:none}header .brand{margin:0}}@media(max-width:900px){footer #status{flex-basis:auto;min-width:120px}footer .spacer{display:block}footer select{font-size:12px}footer{gap:5px}}
+
+.cm-editor{background:var(--editor)!important;color:var(--text)!important}
+
+/* Keep text neutral; reserve the palette accent for focus and selection markers. */
+.tab.active{box-shadow:inset 0 -2px var(--accent)}
+.cm-cursor{border-left-color:var(--text)!important}
+.cm-activeLine{background:color-mix(in srgb,var(--text) 5%,transparent)!important}
+
+/* 0.7.1: search and tab picker use the same compact Studio controls. */
+#tabs-dialog{width:min(520px,calc(100vw - 32px));padding:24px;border-radius:12px}
+#tabs-dialog h2{margin:0 32px 16px 0;font-size:18px}
+#tab-filter{height:34px;border-radius:7px;margin:0 0 12px;padding:6px 10px;font-size:13px}
+#tab-filter:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#tab-results{gap:4px}
+#tab-results .tab-result{height:auto;min-height:34px;display:flex;flex-direction:column;align-items:stretch;padding:6px 10px;background:transparent;white-space:normal}
+#tab-results .tab-result:hover{background:var(--hover)}
+#tab-results .tab-result[aria-current=true]{background:var(--hover);box-shadow:inset 2px 0 var(--accent)}
+.tab-result .result-name,.tab-result small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab-result small{font-size:11px;color:var(--muted);margin-top:2px}
+.cm-panel.cm-search{padding:10px 40px 10px 12px!important;background:var(--bg);font:13px/1.5 system-ui,sans-serif!important}
+.cm-search .cm-textfield{height:30px;width:200px;max-width:35vw;font:inherit!important;padding:4px 9px;border:1px solid var(--border);border-radius:7px;background:var(--editor);color:var(--text)}
+.cm-search .cm-textfield:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.cm-search .cm-button{height:30px;min-height:30px;padding:4px 10px;font:inherit!important;background:var(--panel)!important;background-image:none!important;color:var(--text)!important;border:1px solid transparent!important;border-radius:7px;box-shadow:none!important}
+.cm-search .cm-button:hover{background:var(--hover)!important}
+.cm-panel.cm-search label{height:30px;display:inline-flex;gap:4px;align-items:center;font-size:12px!important;margin:2px 8px 2px 0!important}
+.cm-search input[type=checkbox]{accent-color:var(--accent)}
+.cm-panel.cm-search button[name=close]{top:10px!important;right:10px!important;width:26px;height:30px;padding:0;font-size:20px!important;color:var(--muted)}
+.cm-searchMatch{background:color-mix(in srgb,var(--accent) 25%,transparent)!important}
+.cm-searchMatch-selected{background:color-mix(in srgb,var(--accent) 45%,transparent)!important;outline:1px solid var(--accent)}
+
+/* 0.7.2: white light surfaces; palette colors are reserved for controls. */
+body.light{--bg:#fff;--panel:#f2f2f2;--editor:#fff;--text:#000}
+footer #settings{flex:0 0 32px;display:inline-flex;align-items:center;justify-content:center}
+
+#update-dialog{width:460px;border-radius:12px}#update-dialog h2{font-size:18px}#update-progress{width:100%;height:8px;accent-color:var(--accent)}.update-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+
+/* 0.8 workspaces: compact independent projects, no folder indexing. */
+#project-sidebar{width:210px;min-width:170px;max-width:35vw;resize:horizontal;overflow:auto;flex-shrink:0;padding:12px 10px;background:var(--bg);border-right:1px solid var(--border)}
+#new-project{width:100%;text-align:left;margin-bottom:12px}
+#project-rows{display:flex;flex-direction:column;gap:4px}.project-group{margin-bottom:8px}.project-heading{display:flex;align-items:center;gap:4px}
+.project-heading button{background:transparent;text-align:left;min-width:0}.project-heading .project-name{flex:1;overflow:hidden;text-overflow:ellipsis;font-weight:600}.project-heading .project-active{background:var(--hover)}
+.project-heading .project-collapse{width:22px;flex:0 0 22px;padding:0}.project-doc{display:block;width:100%;padding-left:26px;text-align:left;background:transparent;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px}.project-doc[aria-current=true]{color:var(--text);background:var(--panel)}
+#toggle-projects,#settings,#tabs .new-tab{width:30px;height:30px;min-height:30px;flex:0 0 30px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;vertical-align:middle}
+#tabs .new-tab{font-size:23px;font-weight:400;line-height:1;align-self:center;margin:0 3px}footer #settings{flex-basis:30px;margin-left:4px}#settings svg{display:block;width:16px;height:16px}
+#name-dialog{width:380px;border-radius:12px}#name-title{font-size:18px}#name-value{width:100%;height:32px;font:inherit;color:var(--text);background:var(--editor);border:1px solid var(--border);border-radius:7px;padding:5px 9px}#name-error{color:var(--text);font-size:12px}
+
+#tabs .new-tab{background:var(--bg);box-shadow:inset 0 0 0 1px var(--border)}#tabs .new-tab:hover{background:var(--hover)}
+
+/* Account sign-in is optional and separate from future synchronization. */
+#github-account{border-top:1px solid var(--border);margin-top:20px;padding-top:12px}#github-account h3{font-size:15px;margin:0 0 8px}#github-account p{font-size:13px;line-height:1.5;margin:8px 0}#github-code{display:block;width:200px;max-width:100%;font:600 22px ui-monospace,monospace;letter-spacing:2px;padding:10px;border:1px solid var(--border);border-radius:7px;background:var(--editor);color:var(--text)}#github-code[hidden]{display:none}.github-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.github-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.github-actions button:disabled{opacity:.55;cursor:default}#github-status{overflow-wrap:anywhere}
+
+#github-repo{min-width:0;width:200px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--editor);color:var(--text);padding:4px 8px;font:inherit}#github-repo-label{font-size:13px}#delete{width:30px;padding:0}#git{height:30px}#project-sidebar{padding-top:8px}#tabs .new-tab{height:30px;min-height:30px}header button{flex-shrink:0}
 
 header .brand img{width:36px;height:36px;flex-basis:36px}header{padding-top:3px;padding-bottom:3px}
 
 @media(max-width:1000px){header{flex-wrap:wrap}header>.spacer{display:none}}
+
+/* Explicit note/project deletion and genuinely empty projects. */
+.project-note-row{display:flex;align-items:center;min-width:0;gap:2px}
+.project-note-row .project-doc{flex:1;min-width:0;width:auto}
+.sidebar-delete{width:28px;height:28px;padding:0;display:grid;place-items:center;flex:none;background:transparent;color:var(--muted)}
+.sidebar-delete:hover{color:var(--text);background:var(--hover)}
+.project-heading .project-name{min-width:0}
+#editor:empty::before{content:attr(data-empty);display:block;padding:24px;color:var(--muted);font-size:13px}
+
+#sync-dialog{width:min(410px,calc(100vw - 48px))}#sync-dialog details>summary{cursor:pointer;padding:8px 0;font-weight:600}#sync-dialog .github-actions{display:flex;flex-direction:column;align-items:stretch;gap:8px}#github-options button{margin:4px 0}#sync-provider #github-heading{display:none}
+
+header .brand img{display:block}.project-note-row .project-doc{padding-left:24px}#sync-dialog .github-actions button{align-self:flex-start}

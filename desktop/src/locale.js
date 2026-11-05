@@ -9,7 +9,7 @@ export const strings={
 'В релизе нет установщика Windows.':'Update installer is missing.',
 'Превышено время загрузки обновления.':'Update download timed out.',
 
-'Цветовая схема':'Color scheme',
+'Цветовая схема':'Color scheme','Синхронизация':'Synchronization','Удалить заметку':'Delete note',
 'Формат':'Format','Настройки':'Settings','Диалект SQL':'SQL dialect','Форматирование JSON и SQL — только по кнопке. Авто определяет диалект по расширению файла.':'JSON and SQL formatting runs only on command. Auto detects the dialect from the file extension.',
 '＋ Новый':'+ New','Открыть':'Open','Сохранить':'Save','Найти':'Find','Предпросмотр':'Preview','О проекте':'About',
 'Вкладки':'Tabs','Все вкладки':'All tabs','Поиск вкладки':'Find a tab','Язык':'Syntax','Авто':'Auto','Текст':'Plain text','Тема':'Theme','Кодировка':'Encoding','Окончания строк':'Line endings','Системная':'System','Тёмная':'Dark','Светлая':'Light','Интерфейс':'Interface',

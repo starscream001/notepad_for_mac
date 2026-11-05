@@ -126,3 +126,14 @@ Manual sync обоих клиентов подключён. Основная д�
 0.9.2: пользователь попросил вернуть и увеличить лису, поправить layout. Native toolbar fox36 + edgeInsets3+3 =42pt; fixed horizontal hugging/compression. PNG AppIcon теперь копируется build.sh в bundle. Sidebar190pt, header Projects/+ вместо большой кнопки; addProjectEntry даёт24pt child indentation, SidebarNoteCell выделяет current. Tabs overlay scrolling. Desktop logo36 не скрывается вместе с brand label. QA bundles ui092qa/ui092narrow, отдельные session dirs.
 
 UI 0.9.2 проверен в широкой сборке1120pt и отдельной узкой QA860pt (debug fixture; исходник восстановлен в1120pt). Все11команд+лиса видны; toolbar height42pt, fox36pt, отступы3pt. Публичный код не содержит QA-размеров.
+
+
+## 0.9.3 — удаление и пустые проекты
+
+Кнопки trash у проектов и каждой заметки (включая archive), подтверждения с backup session.before-delete.json. Удаление проекта каскадно создаёт note tombstones и новый optional deletedProjects в shared SyncCore.js (native Session.deletedProjectIDs / desktop settings.deletedProjectIds). Чистый snapshot не может содержать живой project с tombstone. Merge исключает проект; конфликтные заметки переносятся в null project. Обновлять оба устройства: старый 0.9.2 не знает project tombstones.
+
+Последняя вкладка после close/delete не вызывает newDocument/newTab. Native showEmptyProject / Desktop emptyProject очищают редактор, статус, preview и selection. Переключение и восстановление пустого проекта не создают документов. Имена заполняют минимальную дыру среди открытых и закрытых заметок текущего проекта, без глобального счётчика.
+
+Отдельная панель/диалог «Синхронизация», провайдер GitHub раскрывается вручную. GitHub удалён из общих настроек; там только переход. Sync больше не запускается автоматически при нажатии toolbar. Дополнительные create/access/logout скрыты в connection options, profile/refresh UI убраны.
+
+QA: native ui093qa /private/tmp/notepad-ui093-qa: last-note delete → empty → Note1; close last → archived sidebar; archived-note delete; cascade project delete; Synchronization/GitHub disclosure. Desktop source Electron on Mac isolated /private/tmp/notepad-ui093-desktop: last-note delete/name reuse/project delete, restart, restored CSS, sync disclosure. No real account used. Found 0.9.2 CSS accidentally contained Swift Projects.swift; restored v0.9.1 CSS plus current overrides; build.mjs now parses CSS and fails warnings. Native final build/CoreChecks and 55 Node tests pass. Windows/Linux still CI-only.

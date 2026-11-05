@@ -121,6 +121,7 @@ public struct Session: Codable {
     public var looseSelected: UUID?
     public var archivedTabs: [SessionTab]?
     public var deletedNoteIDs: [UUID]?
+    public var deletedProjectIDs: [UUID]?
     public init(tabs: [SessionTab], selected: UUID?, projects: [SessionProject]? = nil, selectedProject: UUID? = nil) {
         self.tabs = tabs; self.selected = selected; self.projects = projects; self.selectedProject = selectedProject
     }

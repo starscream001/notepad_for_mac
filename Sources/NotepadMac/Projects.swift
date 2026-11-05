@@ -42,7 +42,10 @@ extension AppDelegate {
             pick.setButtonType(.pushOnPushOff); pick.state = id == selectedProjectID ? .on : .off; pick.alignment = .left; pick.lineBreakMode = .byTruncatingTail
             pick.bezelStyle = .smallSquare; pick.font = .systemFont(ofSize: 12, weight: .medium); pick.heightAnchor.constraint(equalToConstant: 30).isActive = true
             if let id { pick.onRename = { [weak self] in self?.renameProject(id) } }
-            row.addArrangedSubview(disclosure); row.addArrangedSubview(pick); projectRows.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
+            row.addArrangedSubview(disclosure); row.addArrangedSubview(pick)
+            pick.setContentCompressionResistancePriority(.defaultLow,for:.horizontal)
+            if let id { let trash=iconButton(InterfaceLanguage.english ? "Delete project" : "Удалить проект",#selector(deleteProjectButton(_:)),symbol:"trash");trash.identifier=NSUserInterfaceItemIdentifier(id.uuidString);row.addArrangedSubview(trash) }
+            projectRows.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
             if !collapsed {
                 for tab in tabs where tab.snapshot.projectID == id {
                     let label = (tab.dirty ? "● " : "") + tab.snapshot.title
@@ -61,7 +64,8 @@ extension AppDelegate {
     }
     func addProjectEntry(_ entry:NSButton) {
         let indent=NSView();indent.widthAnchor.constraint(equalToConstant:24).isActive=true
-        let row=NSStackView(views:[indent,entry]);row.orientation = .horizontal;row.alignment = .centerY;row.spacing=0
+        let trash=iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку",#selector(deleteSidebarNote(_:)),symbol:"trash");trash.identifier=entry.identifier
+        let row=NSStackView(views:[indent,entry,trash]);row.orientation = .horizontal;row.alignment = .centerY;row.spacing=0
         entry.setContentCompressionResistancePriority(.defaultLow,for:.horizontal);entry.setContentHuggingPriority(.defaultLow,for:.horizontal)
         projectRows.addArrangedSubview(row);row.widthAnchor.constraint(equalTo:projectRows.widthAnchor).isActive=true
     }
@@ -79,7 +83,7 @@ extension AppDelegate {
         selectedProjectID = id
         let remembered = projects.first(where: { $0.id == id })?.selected ?? (id == nil ? looseSelected : nil)
         if let tab = visibleTabs.first(where: { $0.snapshot.id == remembered }) ?? visibleTabs.first { select(tab) }
-        else { newDocument(nil) }
+        else { showEmptyProject() }
         rebuildTabs(); schedulePersistence()
     }
     func namePrompt(_ title: String, value: String) -> String? {
@@ -106,4 +110,30 @@ extension AppDelegate {
         guard let name = namePrompt(InterfaceLanguage.english ? "Rename tab" : "Переименовать вкладку", value: tab.snapshot.title) else { return }
         tab.snapshot.title = name; tab.textView.setAccessibilityLabel(name); rebuildTabs(); updateTabLabels(); persist()
     }
+    func showEmptyProject() {
+        selectedID=nil
+        if let index=projects.firstIndex(where:{$0.id==selectedProjectID}) { projects[index].selected=nil } else { looseSelected=nil }
+        editorHost.subviews.forEach { $0.removeFromSuperview() }
+        let label=NSTextField(labelWithString:InterfaceLanguage.english ? "No open notes. Press + to create a note or open one from the sidebar." : "Нет открытых заметок. Нажмите + или откройте заметку слева.")
+        label.font = .systemFont(ofSize:13);label.textColor = .secondaryLabelColor;label.translatesAutoresizingMaskIntoConstraints=false;editorHost.addSubview(label)
+        NSLayoutConstraint.activate([label.leadingAnchor.constraint(equalTo:editorHost.leadingAnchor,constant:24),label.trailingAnchor.constraint(lessThanOrEqualTo:editorHost.trailingAnchor,constant:-24),label.topAnchor.constraint(equalTo:editorHost.topAnchor,constant:24)])
+        status.stringValue="";pathLabel.stringValue="";refreshPreview();rebuildTabs();schedulePersistence()
+    }
+    @MainActor @objc func deleteSidebarNote(_ sender:NSButton) {
+        guard let id=sender.identifier.flatMap({UUID(uuidString:$0.rawValue)}) else { return };removeNote(id)
+    }
+    @MainActor @objc func deleteProjectButton(_ sender:NSButton) {
+        guard let id=sender.identifier.flatMap({UUID(uuidString:$0.rawValue)}),let project=projects.first(where:{$0.id==id}) else { return }
+        let count=tabs.filter{$0.snapshot.projectID==id}.count+archivedTabs.filter{$0.projectID==id}.count
+        let alert=NSAlert();alert.messageText=InterfaceLanguage.english ? "Delete project \(project.title)?" : "Удалить проект «\(project.title)»?"
+        alert.informativeText=InterfaceLanguage.english ? "All \(count) notes, including closed notes, will be deleted. GitHub is updated on the next synchronization. External files are kept." : "Будут удалены все заметки (\(count)), включая закрытые. GitHub обновится при следующей синхронизации. Внешние файлы останутся на диске."
+        alert.addButton(withTitle:InterfaceLanguage.english ? "Cancel" : "Отмена");alert.addButton(withTitle:InterfaceLanguage.english ? "Delete project" : "Удалить проект")
+        guard alert.runModal() == .alertSecondButtonReturn, backupBeforeDelete() else { return }
+        deletedProjectIDs.insert(id)
+        for tab in tabs where tab.snapshot.projectID==id { deletedNoteIDs.insert(tab.snapshot.id);tab.highlightWork?.cancel() }
+        for note in archivedTabs where note.projectID==id { deletedNoteIDs.insert(note.id) }
+        tabs.removeAll{$0.snapshot.projectID==id};archivedTabs.removeAll{$0.projectID==id};projects.removeAll{$0.id==id}
+        if selectedProjectID==id { switchProject(nil) };rebuildTabs();persist()
+    }
+
 }

@@ -7,10 +7,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @MainActor lazy var githubAccount = GitHubAccount()
     var formatting = false
     var preferencesPanel: NSPanel?
+    var synchronizationPanel: NSPanel?
     @MainActor weak var githubSettingsView: GitHubSettingsView?
     var tabs: [EditorTab] = []
     var archivedTabs: [SessionTab] = []
     var deletedNoteIDs: Set<UUID> = []
+    var deletedProjectIDs: Set<UUID> = []
     var selectedID: UUID?
     var projects: [SessionProject] = []
     var selectedProjectID: UUID?
@@ -68,7 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         for argument in CommandLine.arguments.dropFirst() where !argument.hasPrefix("-") {
             openURL(URL(fileURLWithPath: argument))
         }
-        if tabs.isEmpty { newDocument(nil) }
+        if tabs.isEmpty && !FileManager.default.fileExists(atPath: sessionURL.path) { newDocument(nil) }
+        if current == nil { showEmptyProject() }
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
         updater.start()
 
@@ -184,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         previewButton.setButtonType(.pushOnPushOff)
         let fox = NSImageView();fox.image=Bundle.main.url(forResource:"AppIcon",withExtension:"png").flatMap { NSImage(contentsOf:$0) };fox.imageScaling = .scaleProportionallyUpOrDown;fox.setAccessibilityLabel("Notepad — fox");fox.translatesAutoresizingMaskIntoConstraints=false
         fox.widthAnchor.constraint(equalToConstant:36).isActive=true;fox.heightAnchor.constraint(equalToConstant:36).isActive=true
-        let toolbar = row([fox,button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton("GitHub", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"), iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку", #selector(deleteNote), symbol:"trash"), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
+        let toolbar = row([fox,button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton(InterfaceLanguage.english ? "Synchronization" : "Синхронизация", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"), iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку", #selector(deleteNote), symbol:"trash"), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
         toolbar.edgeInsets = NSEdgeInsets(top:3,left:12,bottom:3,right:12)
         toolbar.detachesHiddenViews = false
         toolbar.heightAnchor.constraint(equalToConstant: 42).isActive = true
@@ -420,7 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         archivedTabs.removeAll { $0.id==snapshot.id };archivedTabs.append(snapshot)
         let index = visibleTabs.firstIndex(where: { $0 === tab }) ?? 0
         tab.highlightWork?.cancel(); tabs.removeAll { $0 === tab }
-        if visibleTabs.isEmpty { newDocument(nil) }
+        if visibleTabs.isEmpty { showEmptyProject() }
         else if selectedID == tab.snapshot.id { select(visibleTabs[min(index, visibleTabs.count - 1)]) }
         rebuildTabs(); persist()
     }
@@ -623,7 +626,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             }
             var session = Session(tabs: snapshots, selected: selectedID, projects: projects, selectedProject: selectedProjectID)
             session.looseSelected = looseSelected
-            session.archivedTabs = archivedTabs; session.deletedNoteIDs = Array(deletedNoteIDs)
+            session.archivedTabs = archivedTabs; session.deletedNoteIDs = Array(deletedNoteIDs); session.deletedProjectIDs = Array(deletedProjectIDs)
             try SessionStore.save(session, to: sessionURL)
             return true
         } catch {
@@ -639,7 +642,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
                 let backup = sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-projects.json")
                 if !FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.copyItem(at: sessionURL, to: backup) }
             }
-            archivedTabs = session.archivedTabs ?? []; deletedNoteIDs = Set(session.deletedNoteIDs ?? [])
+            archivedTabs = session.archivedTabs ?? []; deletedNoteIDs = Set(session.deletedNoteIDs ?? []); deletedProjectIDs = Set(session.deletedProjectIDs ?? [])
             projects = session.projects ?? []; selectedProjectID = session.selectedProject; looseSelected = session.looseSelected
             for var snapshot in session.tabs {
                 let clean = snapshot.text == snapshot.savedText && (snapshot.savedEncoding ?? snapshot.encoding) == snapshot.encoding && (snapshot.savedLineEnding ?? snapshot.lineEnding) == snapshot.lineEnding
@@ -653,7 +656,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
                 tab.savedEncoding = snapshot.savedEncoding ?? snapshot.encoding; tab.savedEnding = snapshot.savedLineEnding ?? snapshot.lineEnding
                 tab.textView.delegate = self; tabs.append(tab)
             }
-            if let selected = tabs.first(where: { $0.snapshot.id == session.selected }) ?? tabs.first { select(selected) }
+            if let selected = visibleTabs.first(where: { $0.snapshot.id == session.selected }) ?? visibleTabs.first { select(selected) }
+            else { showEmptyProject() }
             rebuildTabs()
         } catch {
             // Preserve a corrupt session for recovery before any new snapshot is written.

@@ -10,6 +10,8 @@ test('projects keep independent tabs, names and remembered selections after JSON
 });
 test('names fill unused sequence, orphan tabs are retained and invalid projects rejected',()=>{
  assert.equal(p.nextName(['Заметка 1','Заметка 3'],'Заметка'),'Заметка 2');
+ assert.equal(p.nextName(['Заметка 2'],'Заметка'),'Заметка 1');
+ assert.equal(p.nextName(p.visible([{title:'Заметка 1',projectId:'other'}],'current').map(t=>t.title),'Заметка'),'Заметка 1');
  assert.equal(p.normalize({tabs:[{id:'x',projectId:'missing',text:'keep'}]}).tabs[0].projectId,null);
  assert.throws(()=>p.normalize({projects:[{id:'a',title:'A'},{id:'a',title:'B'}]}));assert.equal(p.chosen([],null,'none'),null);
 });

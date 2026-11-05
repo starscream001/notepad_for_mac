@@ -21,7 +21,7 @@ extension AppDelegate {
         hint.font = .systemFont(ofSize: 12); hint.textColor = .secondaryLabelColor; hint.widthAnchor.constraint(equalToConstant: 362).isActive = true
         stack.addArrangedSubview(hint)
         let divider = NSBox(); divider.boxType = .separator; divider.widthAnchor.constraint(equalToConstant: 362).isActive = true; stack.addArrangedSubview(divider)
-        let githubView=GitHubSettingsView(account:githubAccount);githubSettingsView=githubView;stack.addArrangedSubview(githubView)
+        stack.addArrangedSubview(button(InterfaceLanguage.english ? "Synchronization…" : "Синхронизация…", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"))
         let scroll=NSScrollView();scroll.hasVerticalScroller=true;scroll.autohidesScrollers=true;scroll.drawsBackground=false;scroll.documentView=stack
         stack.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([stack.widthAnchor.constraint(equalToConstant:410),stack.leadingAnchor.constraint(equalTo:scroll.contentView.leadingAnchor),stack.topAnchor.constraint(equalTo:scroll.contentView.topAnchor)])

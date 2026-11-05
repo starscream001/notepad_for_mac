@@ -10,12 +10,13 @@ import NotepadCore
     let actions = NSStackView()
     private var creating = false
     private var syncing = false
+    private var advanced = false
     let repository = NSTextField(string: "notepad-notes")
     init(account: GitHubAccount) {
         self.account = account; super.init(frame: .zero)
         orientation = .vertical; alignment = .leading; spacing = 10
-        let title = NSTextField(labelWithString: "GitHub"); title.font = .systemFont(ofSize: 15, weight: .semibold)
-        addArrangedSubview(title); addArrangedSubview(status); addArrangedSubview(detail); addArrangedSubview(problem)
+        // Provider name is shown by the enclosing disclosure.
+        addArrangedSubview(status); addArrangedSubview(detail); addArrangedSubview(problem)
         for label in [status, detail, problem] { label.widthAnchor.constraint(equalToConstant: 362).isActive = true; label.font = .systemFont(ofSize: 12); label.isSelectable = true }
         detail.textColor = .secondaryLabelColor
         code.isEditable = false; code.isSelectable = true; code.font = .monospacedSystemFont(ofSize: 20, weight: .semibold); code.alignment = .center
@@ -40,9 +41,12 @@ import NotepadCore
         if let profile = account.profile {
             add("Синхронизировать","Synchronize",#selector(synchronize),enabled:!syncing && !creating)
             status.stringValue = "@" + profile.login + (profile.name.map { " · " + $0 } ?? "")
-            add("Разрешить доступ GitHub","Allow GitHub access",#selector(installApp))
-            add("Создать приватный репозиторий","Create private repository",#selector(createRepository),enabled: !creating && !syncing)
-            add("Профиль","Profile",#selector(openProfile)); add("Проверить вход","Check connection",#selector(refresh),enabled:account.phase != "checking"); add("Выйти","Sign out",#selector(signOut))
+            add(advanced ? "Скрыть параметры ⌃" : "Параметры подключения ›",advanced ? "Hide connection options ⌃" : "Connection options ›",#selector(toggleAdvanced))
+            if advanced {
+                add("Создать приватный репозиторий","Create private repository",#selector(createRepository),enabled: !creating && !syncing)
+                add("Разрешить доступ","Allow repository access",#selector(installApp))
+                add("Выйти","Sign out",#selector(signOut),enabled: !creating && !syncing)
+            }
         } else {
             switch account.phase {
             case "unconfigured": status.stringValue = text("Вход будет доступен после настройки приложения разработчиком.","Sign-in will be available after the developer configures the app.")
@@ -56,6 +60,7 @@ import NotepadCore
             else { add("Войти через браузер","Sign in with browser",#selector(signIn),enabled:account.phase != "unconfigured"); if account.phase == "error" { add("Выйти / очистить вход","Sign out / clear account",#selector(signOut)) } }
         }
     }
+    @objc private func toggleAdvanced() { advanced.toggle();render() }
     private func message(_ error: GitHubIdentityError) -> String {
         switch error {
         case .storage: return text("Не удалось открыть защищённое хранилище. Попробуйте снова; токен открытым текстом не сохраняется.","Secure storage is unavailable. Retry; tokens are never saved as plaintext.")

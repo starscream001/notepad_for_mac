@@ -17,5 +17,14 @@ enum SyncScriptTests {
         let removal=context.objectForKeyedSubscript("NotepadSync")!.objectForKeyedSubscript("mergeJSON")!.call(withArguments:[sample,deleted,sample,"[]"])!.toString()!
         let removed=try JSONSerialization.jsonObject(with:Data(removal.utf8)) as! [String:Any]
         XCTAssertEqual(((removed["snapshot"] as! [String:Any])["tabs"] as! [Any]).count,0)
+        let projectID="33333333-3333-4333-8333-333333333333"
+        let projectBase="{\"schema\":1,\"projects\":[{\"id\":\"\(projectID)\",\"title\":\"Work\"}],\"tabs\":[]}"
+        let projectDeleted="{\"schema\":1,\"projects\":[],\"tabs\":[],\"deletedProjects\":[\"\(projectID)\"]}"
+        let projectRemoval=context.objectForKeyedSubscript("NotepadSync")!.objectForKeyedSubscript("mergeJSON")!.call(withArguments:[projectBase,projectDeleted,projectBase,"[]"])!.toString()!
+        XCTAssertEqual(context.exception == nil,true)
+        let projectResult=(try JSONSerialization.jsonObject(with:Data(projectRemoval.utf8)) as! [String:Any])["snapshot"] as! [String:Any]
+        XCTAssertEqual((projectResult["projects"] as! [Any]).count,0)
+        XCTAssertEqual(projectResult["deletedProjects"] as? [String],[projectID])
+
     }
 }

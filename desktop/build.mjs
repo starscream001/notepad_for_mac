@@ -2,7 +2,9 @@ import {build} from 'esbuild';
 import {mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 await mkdir('ui',{recursive:true});
 await build({entryPoints:['src/renderer.js'],bundle:true,outfile:'ui/renderer.js',format:'esm',platform:'browser',target:'chrome140',minify:true});
-for(const name of ['index.html','style.css']) await copyFile(`src/${name}`,`ui/${name}`);
+const styles=await build({entryPoints:['src/style.css'],outfile:'ui/style.css',minify:true,logLevel:'silent'});
+if(styles.warnings.length)throw Error('Invalid stylesheet: '+styles.warnings.map(w=>w.text).join('; '));
+for(const name of ['index.html']) await copyFile(`src/${name}`,`ui/${name}`);
 await copyFile('../Resources/Palettes.json','ui/palettes.json');
 await copyFile('../LICENSE','LICENSE');
 
