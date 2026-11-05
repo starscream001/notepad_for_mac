@@ -1,4 +1,5 @@
-const core=require('./sync-core.cjs'),crypto=require('node:crypto');
+const core=require('node:fs').existsSync(require('node:path').join(__dirname,'sync-core.cjs'))?require('./sync-core.cjs'):require('../Resources/SyncCore.js');
+const crypto=require('node:crypto');
 const validSha=s=>typeof s==='string'&&/^[a-f0-9]{40,64}$/.test(s);
 async function synchronize({owner,repo,token,base,local,signal,fetcher=fetch}){
  if(!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(owner)||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(repo))throw Error('invalid_repository');
