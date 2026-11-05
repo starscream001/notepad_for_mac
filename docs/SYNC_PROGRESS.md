@@ -36,3 +36,17 @@ notepad/manifest.json: schema=1, projects [{id,title}], tabs [{id,projectId,titl
 Client ID получен от владельца и подключён: Iv23liPeQma6kkZ1Ndog, appSlug notepad-desktop. Следующий пользовательский тест — настоящий Device Flow в локальной Mac-сборке; создание repo и sync ещё НЕ подключены.
 
 Выпуск 0.9: добавлены UI подтверждения и private repo POST обоих клиентов, кнопка официальной установки App; формат ещё не передаётся. Создание покрыто mock tests (44 всего), реальное создание требует пользовательского QA. Верхняя панель Mac компактная, sidebar отделён. Следующий этап: установка/права и первый sync commit; не считать completed sync.
+
+## Checkpoint 0.9.1 — реальная передача и удаление (в работе)
+
+Реализовано общее Resources/SyncCore.js для Electron/JavaScriptCore: snapshot schema1 в .notepad/snapshot.json, слияние base/local/remote, conflict copies, deleted UUID tombstones. Snapshot не содержит внешних путей/токенов. Предел: 1 MiB на заметку, 5 MiB всего, 300 заметок. Ранний per-file codec не использовался в релизе и заменён для sync атомарным snapshot blob; будущую миграцию делать по schema.
+
+Оба клиента подключены к Git Data API: private owner check → pinned head/tree/blob → merge → blob/tree/commit → non-force PATCH ref. Другие файлы дерева сохраняются через base_tree. Изменения branch во время записи отклоняются. Кнопка сохранения остаётся локальной, GitHub отдельной кнопкой. Все проекты/заметки отправляются только после подтверждения ручной команды.
+
+Закрытые вкладки сохраняются в archivedTabs и видны в проекте. Отдельное удаление с подтверждением записывает tombstone; синхронизация удаляет запись в текущем snapshot, Git history остаётся. Изменение одновременно с удалением сохраняется новой conflict note. session.before-sync.json / session.before-delete.json — локальные резервные копии. Native и Electron UI/перезапуск ещё проверяются. 54 Node tests и CoreChecks прошли; реальные пользовательские GitHub credentials не извлекались/не использовались агентом.
+
+Следующее: проверить UI локальной сборки, архив/reopen/delete/restore и roundtrip через JavaScriptCore; устранить дефекты, обновить README/CHANGELOG/Release notes и выпустить 0.9.1. E2E настоящего GitHub ещё требует пользовательского теста. Не утверждать, что mock transport уже реальный двухустройственный QA.
+
+## Готовность 0.9.1
+
+Код передачи, archive/reopen, explicit deletion и separate Git button обоих клиентов подключён. Native UI закрытия/открытия с Unicode проверен; shared JavaScriptCore тест выполнен; 54 Node-теста проходят. README/CHANGELOG/docs/SYNC.md/notes обновлены. Версии синхронизированы 0.9.1. Далее — CI/публикация и ручной тест владельцем реального repo. Хранение: JSON snapshot + tombstones; закрытая заметка остаётся локально, удалённая через корзину исчезает после sync, Git history не стирается. Организации/автосинхронизация/E2EE/refresh-token автоматизация остаются вне этого патча.

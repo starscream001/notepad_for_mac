@@ -19,6 +19,6 @@ if(require.main===module){
  const gh=args=>execFileSync('gh',args,{encoding:'utf8'});
  const releases=JSON.parse(gh(['api',`repos/${repo}/releases?per_page=100`,'--paginate','--slurp'])).flat();
  const removals=plan(releases,`v${version}`);
- for(const item of removals){console.log(`Removing ${item.tag}: ${item.name}`);gh(['api','--method','DELETE',`repos/${repo}/releases/assets/${item.id}`]);}
+ for(const item of removals){console.log(`Removing ${item.tag}: ${item.name}`);gh(['api','--silent','--method','DELETE',`repos/${repo}/releases/assets/${item.id}`]);}
  console.log(`Removed ${removals.length} old installer/checksum assets. Tags, notes and source archives retained.`);
 }

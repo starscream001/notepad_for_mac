@@ -7,7 +7,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @MainActor lazy var githubAccount = GitHubAccount()
     var formatting = false
     var preferencesPanel: NSPanel?
+    @MainActor weak var githubSettingsView: GitHubSettingsView?
     var tabs: [EditorTab] = []
+    var archivedTabs: [SessionTab] = []
+    var deletedNoteIDs: Set<UUID> = []
     var selectedID: UUID?
     var projects: [SessionProject] = []
     var selectedProjectID: UUID?
@@ -139,7 +142,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.cell = EditorButtonCell(textCell: title)
         button.target = self; button.action = action
         button.contentTintColor = EditorPalette.label
-        button.bezelStyle = .rounded
+        button.bezelStyle = .smallSquare
+        button.controlSize = .small
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setContentHuggingPriority(.required, for: .vertical)
         button.font = .systemFont(ofSize: 13, weight: .medium)
         button.heightAnchor.constraint(equalToConstant: 30).isActive = true
         if title.isEmpty {
@@ -154,7 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let control = button("", action, symbol:symbol); control.setAccessibilityLabel(title); control.toolTip = title; return control
     }
     func row(_ views: [NSView]) -> NSStackView {
-        let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.spacing = 8
+        let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.alignment = .centerY; stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
         return stack
     }
@@ -174,17 +180,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         previewButton = iconButton(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
+        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton("GitHub", #selector(showGitHubSync), symbol:"arrow.triangle.2.circlepath"), iconButton(InterfaceLanguage.english ? "Delete note" : "Удалить заметку", #selector(deleteNote), symbol:"trash"), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
         toolbar.detachesHiddenViews = false
         toolbar.heightAnchor.constraint(equalToConstant: 42).isActive = true
         root.addArrangedSubview(toolbar)
-        tabStack.orientation = .horizontal; tabStack.spacing = 4
+        tabStack.orientation = .horizontal; tabStack.alignment = .centerY; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
         let tabScroll = NSScrollView(); tabScroll.hasHorizontalScroller = true; tabScroll.autohidesScrollers = true
         tabScroll.drawsBackground = false; tabScroll.documentView = tabStack
         tabStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([tabStack.leadingAnchor.constraint(equalTo: tabScroll.contentView.leadingAnchor), tabStack.topAnchor.constraint(equalTo: tabScroll.contentView.topAnchor), tabStack.heightAnchor.constraint(equalToConstant: 40)])
-        tabScroll.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        tabScroll.heightAnchor.constraint(equalToConstant: 38).isActive = true
         root.addArrangedSubview(tabScroll)
         searchField.placeholderString = L("Найти"); searchField.setAccessibilityLabel(L("Найти"))
         searchField.target = self; searchField.action = #selector(findNext(_:))
@@ -263,7 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
 
     @objc func newDocument(_ sender: Any?) {
         let base = InterfaceLanguage.english ? "Note" : "Заметка"
-        var n = 1; while visibleTabs.contains(where: { $0.snapshot.title == "\(base) \(n)" }) { n += 1 }
+        var n = 1; while visibleTabs.contains(where: { $0.snapshot.title == "\(base) \(n)" }) || archivedTabs.contains(where: { $0.projectID == selectedProjectID && $0.title == "\(base) \(n)" }) { n += 1 }
         addTab(SessionTab(title: "\(base) \(n)"))
     }
     func addTab(_ snapshot: SessionTab) {
@@ -405,14 +411,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     @objc func closeCurrent(_ sender: Any?) { if let current { close(current) } }
     @objc func closeTab(_ sender: NSButton) { if let tab = tabFor(sender) { close(tab) } }
     func close(_ tab: EditorTab) {
-        if tab.dirty {
-            let alert = NSAlert(); alert.messageText = L("Сохранить «\(tab.snapshot.title)»?")
-            alert.informativeText = L("При закрытии без сохранения изменения этой вкладки будут удалены.")
-            alert.addButton(withTitle: L("Сохранить")); alert.addButton(withTitle: L("Отмена")); alert.addButton(withTitle: L("Не сохранять"))
-            let response = alert.runModal()
-            if response == .alertSecondButtonReturn { return }
-            if response == .alertFirstButtonReturn && !save(tab, choosePath: tab.url == nil) { return }
-        }
+        var snapshot=tab.capture();snapshot.savedEncoding=tab.savedEncoding;snapshot.savedLineEnding=tab.savedEnding
+        archivedTabs.removeAll { $0.id==snapshot.id };archivedTabs.append(snapshot)
         let index = visibleTabs.firstIndex(where: { $0 === tab }) ?? 0
         tab.highlightWork?.cancel(); tabs.removeAll { $0 === tab }
         if visibleTabs.isEmpty { newDocument(nil) }
@@ -618,6 +618,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
             }
             var session = Session(tabs: snapshots, selected: selectedID, projects: projects, selectedProject: selectedProjectID)
             session.looseSelected = looseSelected
+            session.archivedTabs = archivedTabs; session.deletedNoteIDs = Array(deletedNoteIDs)
             try SessionStore.save(session, to: sessionURL)
             return true
         } catch {
@@ -633,6 +634,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
                 let backup = sessionURL.deletingLastPathComponent().appendingPathComponent("session.before-projects.json")
                 if !FileManager.default.fileExists(atPath: backup.path) { try FileManager.default.copyItem(at: sessionURL, to: backup) }
             }
+            archivedTabs = session.archivedTabs ?? []; deletedNoteIDs = Set(session.deletedNoteIDs ?? [])
             projects = session.projects ?? []; selectedProjectID = session.selectedProject; looseSelected = session.looseSelected
             for var snapshot in session.tabs {
                 let clean = snapshot.text == snapshot.savedText && (snapshot.savedEncoding ?? snapshot.encoding) == snapshot.encoding && (snapshot.savedLineEnding ?? snapshot.lineEnding) == snapshot.lineEnding

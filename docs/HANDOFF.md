@@ -116,3 +116,9 @@ Checkpoint 2: JS/Swift auth переведён на GitHub App: device request �
 Client ID Iv23liPeQma6kkZ1Ndog подключён. Для владельца собрана VERSION=0.9.0-dev ./scripts/build.sh (Mac arm64) с настоящим Device Flow, выходной ZIP в outputs. Это локальный тест входа, не опубликованный stable и не готовая синхронизация. CoreChecks и 42 Node-теста проходят. Ждать результат ручного входа владельца; далее шаг 3 SYNC_PROGRESS.
 
 0.9.0: владелец подтвердил настоящий GitHub вход. Добавлено private repo creation с подтверждением native alert / main-process Electron dialog; токены остаются вне renderer. Новый github-repository.cjs включён в builder. Mac toolbar right icons, detachesHiddenViews=false и высота42; Sidebar отделена. Sync ещё не включён. Реальное создание repo/Windows/Linux QA пока не подтверждены.
+
+## 0.9.1 — текущее состояние
+
+Manual sync обоих клиентов подключён. Основная документация docs/SYNC.md, архитектура/этапы docs/SYNC_PROGRESS.md. Shared Resources/SyncCore.js исполняется Electron main и JavaScriptCore native. Отдельная кнопка GitHub, explicit delete с tombstones, закрытие переносит в archivedTabs. Native Session поля archivedTabs/deletedNoteIDs optional для совместимости, Desktop archive + settings.deletedNoteIds. Реальная сетевая отправка .notepad/snapshot.json одним commit и non-force PATCH; base cache per accountID/repo. Миграции early per-file codec не надо: он не использовался для cloud.
+
+54 Node tests, CoreChecks (включая реальный JavaScriptCore), native close/reopen UI с Unicode проверены. Реальный GitHub 2-device E2E агент не проходил/токен владельца не извлекал. Передача действительно подключена в коде, но не утверждать full manual platform QA. Следующие проверки: реальный upload/download/delete и отмена/401/смена repo. Ограничения: manual only, own private account repo, 300 notes/100 projects/1MiB per note/5MiB total, no E2EE; old Git history сохраняет удалённый текст.

@@ -15,3 +15,5 @@ await writeFile('../Resources/Vendor/sql-formatter-LICENSE.txt','sql-formatter 1
 await copyFile('../Resources/Vendor/sql-formatter-LICENSE.txt','ui/sql-formatter-LICENSE.txt');
 
 await copyFile('../Resources/GitHubOAuth.json','github-oauth.json');
+
+await copyFile('../Resources/SyncCore.js','sync-core.cjs');

@@ -5,7 +5,7 @@ extension AppDelegate {
         if let preferencesPanel { preferencesPanel.makeKeyAndOrderFront(nil); return }
         let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 410, height: 560), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = L("Настройки…"); panel.isReleasedWhenClosed = false
-        let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 16
+        let stack = EditorListStack(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         let language = NSPopUpButton(); language.addItems(withTitles: ["Русский", "English"]); language.selectItem(at: InterfaceLanguage.english ? 1 : 0)
         language.target = self; language.action = #selector(preferenceLanguageChanged(_:)); language.setAccessibilityLabel("Interface language")
@@ -21,8 +21,11 @@ extension AppDelegate {
         hint.font = .systemFont(ofSize: 12); hint.textColor = .secondaryLabelColor; hint.widthAnchor.constraint(equalToConstant: 362).isActive = true
         stack.addArrangedSubview(hint)
         let divider = NSBox(); divider.boxType = .separator; divider.widthAnchor.constraint(equalToConstant: 362).isActive = true; stack.addArrangedSubview(divider)
-        stack.addArrangedSubview(GitHubSettingsView(account: githubAccount))
-        panel.contentView = stack; preferencesPanel = panel; panel.center(); panel.makeKeyAndOrderFront(nil)
+        let githubView=GitHubSettingsView(account:githubAccount);githubSettingsView=githubView;stack.addArrangedSubview(githubView)
+        let scroll=NSScrollView();scroll.hasVerticalScroller=true;scroll.autohidesScrollers=true;scroll.drawsBackground=false;scroll.documentView=stack
+        stack.translatesAutoresizingMaskIntoConstraints=false
+        NSLayoutConstraint.activate([stack.widthAnchor.constraint(equalToConstant:410),stack.leadingAnchor.constraint(equalTo:scroll.contentView.leadingAnchor),stack.topAnchor.constraint(equalTo:scroll.contentView.topAnchor)])
+        panel.contentView = scroll; preferencesPanel = panel; panel.center(); panel.makeKeyAndOrderFront(nil)
     }
     @objc func preferenceLanguageChanged(_ sender: NSPopUpButton) {
         preferencesPanel?.close(); preferencesPanel = nil

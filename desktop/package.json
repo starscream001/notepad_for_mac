@@ -1,7 +1,7 @@
 {
   "name": "notepad-desktop",
   "productName": "Notepad Desktop",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Text, code and queries \u2014 desktop editor by Ilya",
   "author": "Ilya (starscream001)",
   "license": "MIT",
@@ -29,6 +29,8 @@
       "updates.cjs",
       "projects.cjs",
       "github-auth.cjs",
+      "github-sync.cjs",
+      "sync-core.cjs",
       "github-repository.cjs",
       "github-storage.cjs",
       "github-oauth.json"

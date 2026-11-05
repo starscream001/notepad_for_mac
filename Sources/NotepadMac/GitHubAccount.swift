@@ -42,6 +42,7 @@ private struct GitHubKeychain {
     private var task: Task<Void, Never>?
     private var generation = UUID()
     private var loaded = false
+    private var _syncBusy = false
     private let keychain = GitHubKeychain()
     private let redirect = GitHubNoRedirect()
     private lazy var session: URLSession = {
@@ -119,7 +120,49 @@ private struct GitHubKeychain {
         guard epoch == generation, let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any], value["private"] as? Bool == true, value["name"] as? String == name, let owner = value["owner"] as? [String: Any], (owner["login"] as? String)?.lowercased() == profile.login.lowercased() else { throw GitHubRepositoryError.unknown }
         return profile.login + "/" + name
     }
-    private func request(_ url: String, form: [String: String]? = nil, token: String? = nil, json: [String: Any]? = nil) async throws -> Data {
+    private var syncBusy: Bool { get { _syncBusy } set { _syncBusy = newValue } }
+    func synchronize(repo: String, app: AppDelegate) async throws -> (conflicts:Int,pending:Bool) {
+        guard !syncBusy, let saved=credentials, let profile else { throw GitHubIdentityError.unauthorized }
+        guard repo.range(of:"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$",options:.regularExpression) != nil else { throw GitHubRepositoryError.invalidName }
+        syncBusy=true;defer { syncBusy=false };let epoch=generation
+        guard app.persist() else { throw GitHubIdentityError.storage }
+        let initial=try app.portableNotes(), cacheURL=app.sessionURL.deletingLastPathComponent().appendingPathComponent("github-sync.json"), key=String(profile.id)+"/"+repo
+        var cache:[String:[String:Any]]=[:]
+        if FileManager.default.fileExists(atPath:cacheURL.path) { guard let value=try JSONSerialization.jsonObject(with:Data(contentsOf:cacheURL)) as? [String:[String:Any]] else { throw GitHubIdentityError.storage };cache=value }
+        let prefix="https://api.github.com/repos/"+profile.login+"/"+repo
+        func api(_ path:String,_ method:String="GET",_ body:[String:Any]?=nil) async throws -> [String:Any] {
+            try Task.checkCancellation();guard epoch==self.generation else { throw CancellationError() }
+            let data=try await self.request(prefix+path,token:saved.token,json:body,method:method,maximum:8*1024*1024)
+            guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else { throw GitHubIdentityError.invalidResponse };return value
+        }
+        func sha(_ value:Any?) throws -> String { guard let s=value as? String,s.range(of:"^[0-9a-f]{40,64}$",options:.regularExpression) != nil else { throw GitHubIdentityError.invalidResponse };return s }
+        let info=try await api("");guard info["private"] as? Bool == true,let branch=info["default_branch"] as? String,let owner=info["owner"] as? [String:Any],(owner["login"] as? String)?.lowercased()==profile.login.lowercased() else { throw GitHubRepositoryError.permission }
+        let safeBranch=branch.addingPercentEncoding(withAllowedCharacters:.alphanumerics) ?? ""
+        let ref=try await api("/git/ref/heads/"+safeBranch),head=try sha((ref["object"] as? [String:Any])?["sha"])
+        let commit=try await api("/git/commits/"+head),treeSHA=try sha((commit["tree"] as? [String:Any])?["sha"])
+        let tree=try await api("/git/trees/"+treeSHA+"?recursive=1");guard tree["truncated"] as? Bool != true,let entries=tree["tree"] as? [[String:Any]] else { throw GitHubIdentityError.invalidResponse }
+        var remote="{\"schema\":1,\"projects\":[],\"tabs\":[]}"
+        if let entry=entries.first(where:{$0["path"] as? String == ".notepad/snapshot.json"}) {
+            guard entry["type"] as? String == "blob",(entry["size"] as? Int ?? Int.max)<=5242880 else { throw GitHubIdentityError.invalidResponse }
+            let blob=try await api("/git/blobs/"+sha(entry["sha"]))
+            guard blob["encoding"] as? String == "base64",let content=blob["content"] as? String,let data=Data(base64Encoded:content,options:.ignoreUnknownCharacters),data.count<=5242880,let object=try JSONSerialization.jsonObject(with:data) as? [String:Any] else { throw GitHubIdentityError.invalidResponse };remote=try SyncEngine.clean(object)
+        }
+        let merged=try SyncEngine.merge(cache[key]?["base"] as? String,initial,remote)
+        var nextHead=head
+        if merged.0 != remote {
+            let blob=try await api("/git/blobs","POST",["content":merged.0,"encoding":"utf-8"])
+            let nextTree=try await api("/git/trees","POST",["base_tree":treeSHA,"tree":[["path":".notepad/snapshot.json","mode":"100644","type":"blob","sha":try sha(blob["sha"])]]])
+            let next=try await api("/git/commits","POST",["message":"Sync Notepad notes","tree":try sha(nextTree["sha"]),"parents":[head]])
+            nextHead=try sha(next["sha"]);_=try await api("/git/refs/heads/"+safeBranch,"PATCH",["sha":nextHead,"force":false])
+        }
+        guard epoch==generation else { throw CancellationError() }
+        let applied=try SyncEngine.merge(initial,app.portableNotes(),merged.0)
+        try app.applyCloudNotes(applied.0)
+        cache[key]=["base":merged.0,"head":nextHead,"lastSync":ISO8601DateFormatter().string(from:Date())]
+        try JSONSerialization.data(withJSONObject:cache).write(to:cacheURL,options:.atomic)
+        return (merged.1+applied.1,applied.0 != merged.0)
+    }
+    private func request(_ url: String, form: [String: String]? = nil, token: String? = nil, json: [String: Any]? = nil, method: String? = nil, maximum: Int = 65536) async throws -> Data {
         var request = URLRequest(url: URL(string: url)!); request.setValue("application/json", forHTTPHeaderField: "Accept"); request.setValue("Notepad-Mac", forHTTPHeaderField: "User-Agent")
         if let form {
             request.httpMethod = "POST"; request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -127,6 +170,7 @@ private struct GitHubKeychain {
             request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
         }
         if let json { request.httpMethod = "POST"; request.httpBody = try JSONSerialization.data(withJSONObject: json); request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
+        if let method { request.httpMethod=method }
         if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization"); request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version") }
         let (bytes, response) = try await session.bytes(for: request)
         guard let response = response as? HTTPURLResponse else { throw GitHubIdentityError.network }
@@ -134,8 +178,8 @@ private struct GitHubKeychain {
         if json != nil, response.statusCode == 403 { throw GitHubRepositoryError.permission }
         if response.statusCode == 401 { throw GitHubIdentityError.unauthorized }
         if [403,429].contains(response.statusCode) { throw GitHubIdentityError.rateLimit }
-        guard [200,201].contains(response.statusCode), response.expectedContentLength <= 65536 else { throw GitHubIdentityError.network }
-        var data = Data(); for try await byte in bytes { guard data.count < 65536 else { throw GitHubIdentityError.invalidResponse }; data.append(byte) }; return data
+        guard [200,201].contains(response.statusCode), response.expectedContentLength <= maximum else { throw GitHubIdentityError.network }
+        var data = Data(); for try await byte in bytes { guard data.count < maximum else { throw GitHubIdentityError.invalidResponse }; data.append(byte) }; return data
     }
     private func fetchProfile(_ token: String) async throws -> GitHubProfile {
         try JSONDecoder().decode(GitHubProfile.self, from: await request("https://api.github.com/user", token: token)).validated()

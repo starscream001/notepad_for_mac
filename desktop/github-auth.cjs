@@ -38,7 +38,7 @@ class GitHubAuth {
    catch{if(epoch===this.generation)this.publish({phase:'error',error:'storage'});}
   }return {...this.state};
  }
- cancel(){this.generation++;this.controller?.abort();this.creationController?.abort();this.controller=null;this.publish(this.credentials?{phase:'connected',profile:this.credentials.profile}:{phase:validClient(this.clientID)?'signedOut':'unconfigured'});}
+ cancel(){this.generation++;this.controller?.abort();this.creationController?.abort();this.syncController?.abort();this.controller=null;this.publish(this.credentials?{phase:'connected',profile:this.credentials.profile}:{phase:validClient(this.clientID)?'signedOut':'unconfigured'});}
  async start(){
   await this.status();if(this.credentials)return {...this.state};if(!validClient(this.clientID))return this.publish({phase:'unconfigured'});
   this.cancel();this.credentials=null;const epoch=this.generation,controller=new AbortController();this.controller=controller;const signal=controller.signal;
@@ -65,6 +65,12 @@ class GitHubAuth {
    const credentials={provider:'github-app',clientID:this.clientID,token,profile,expiresAt:result.expires_in?this.now()+result.expires_in*1000:null};
    await this.serial(async()=>{if(epoch!==this.generation)return;try{await this.storage.write(credentials);}catch{throw fail('storage');}if(epoch!==this.generation){await this.storage.remove();return;}this.credentials=credentials;this.publish({phase:'connected',profile});});return;
   }
+ }
+ async synchronize(options){
+  await this.status();if(!this.credentials)throw fail('unauthorized');if(this.syncing)throw fail('busy');this.syncing=true;
+  const epoch=this.generation,controller=new AbortController();this.syncController=controller;
+  try{const result=await require('./github-sync.cjs').synchronize({...options,owner:this.credentials.profile.login,token:this.credentials.token,signal:controller.signal});if(epoch!==this.generation)throw fail('cancelled');return result;}
+  finally{this.syncing=false;this.syncController=null;}
  }
  async createRepository(name,confirmed){
   await this.status();if(!this.credentials)throw fail('unauthorized');if(this.creating)throw fail('busy');this.creating=true;

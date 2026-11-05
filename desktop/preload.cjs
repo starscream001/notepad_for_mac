@@ -2,6 +2,7 @@ const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('notepad',Object.freeze({
   githubCreateRepository:name=>ipcRenderer.invoke('github-create-repository',name),
   githubInstallApp:()=>ipcRenderer.invoke('github-install-app'),
+  githubSync:repo=>ipcRenderer.invoke('github-sync',repo),
   githubStatus:()=>ipcRenderer.invoke('github-status'),
   githubStart:()=>ipcRenderer.invoke('github-start'),
   githubCancel:()=>ipcRenderer.invoke('github-cancel'),
@@ -15,6 +16,7 @@ contextBridge.exposeInMainWorld('notepad',Object.freeze({
   open:()=>ipcRenderer.invoke('open'),
   save:(tab,as)=>ipcRenderer.invoke('save',tab,as),
   snapshot:session=>ipcRenderer.invoke('snapshot',session),
+  confirmDelete:title=>ipcRenderer.invoke('confirm-delete',title),
   confirmClose:title=>ipcRenderer.invoke('confirm-close',title),
   update:manual=>ipcRenderer.invoke('update',manual),
   cancelUpdate:()=>ipcRenderer.invoke('cancel-update'),

@@ -26,17 +26,39 @@ function readFile(file){
   file=fs.realpathSync(file);if(fs.statSync(file).size>MAX_BYTES)throw Error('Поддерживаются файлы до 20 МБ.');
   const value=decode(fs.readFileSync(file));const tab={id:crypto.randomUUID(),path:file,title:path.basename(file),...value,savedText:value.text,savedEncoding:value.encoding,savedEnding:value.ending,diskHash:fingerprint(file),language:'auto',selection:0,projectId:model.selectedProject||null};
   const existing=model.tabs.find(t=>t.path===file);if(existing)return existing;
+  const archived=(model.archivedTabs||[]).find(t=>t.path===file);if(archived){model.archivedTabs=model.archivedTabs.filter(t=>t.id!==archived.id);model.tabs.push(archived);model.selected=archived.id;return archived;}
   paths.set(tab.id,file);model.tabs.push(tab);model.selected=tab.id;return tab;
 }
 function load(){
   if(!fs.existsSync(stateFile()))return;
   try {const saved=JSON.parse(fs.readFileSync(stateFile(),'utf8'));if(!Array.isArray(saved.tabs))throw Error('Неверная сессия');if(!Array.isArray(saved.projects)){try{fs.copyFileSync(stateFile(),path.join(path.dirname(stateFile()),'session.before-projects.json'),fs.constants.COPYFILE_EXCL);}catch(e){if(e.code!=='EEXIST')throw e;}}model=projectsCore.normalize(saved);
-    for(const tab of model.tabs){if(tab.path){paths.set(tab.id,tab.path);if(tab.text===tab.savedText&&fs.existsSync(tab.path)){const current=decode(fs.readFileSync(tab.path));Object.assign(tab,current,{savedText:current.text,savedEncoding:current.encoding,savedEnding:current.ending,diskHash:fingerprint(tab.path)});}}}
+    for(const tab of [...model.tabs,...(model.archivedTabs||[])]){if(tab.path){paths.set(tab.id,tab.path);if(tab.text===tab.savedText&&fs.existsSync(tab.path)){const current=decode(fs.readFileSync(tab.path));Object.assign(tab,current,{savedText:current.text,savedEncoding:current.encoding,savedEnding:current.ending,diskHash:fingerprint(tab.path)});}}}
   }catch(error){const backup=stateFile()+'.damaged-'+Date.now();fs.renameSync(stateFile(),backup);model={tabs:[],selected:null,settings:{}};dialog.showErrorBox('Сессия сохранена для восстановления',`${error.message}\nКопия: ${backup}`);}
 }
 function command(name){win?.webContents.send('command',name);}
 function trusted(event){if(event.sender!==win?.webContents||event.senderFrame!==win.webContents.mainFrame)throw Error('Недопустимый отправитель');}
 function handler(name,fn){ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){const messages={'Бинарный файл не поддерживается.':'Binary files are not supported.','Поддерживаются файлы до 20 МБ.':'Files up to 20 MB are supported.','Файл уже открыт в другой вкладке.':'This file is already open in another tab.','Неверная кодировка.':'Invalid encoding.'};return {ok:false,error:en()?(messages[error.message]||error.message):error.message};}});}
+const syncCore=()=>require('./sync-core.cjs');
+function portable(model){return syncCore().clean({schema:1,projects:(model.projects||[]).map(p=>({id:p.id,title:p.title})),deleted:model.settings?.deletedNoteIds||[],tabs:[...model.tabs,...(model.archivedTabs||[])].map(t=>({id:t.id,projectId:t.projectId||null,title:t.title,text:t.text}))});}
+handler('github-sync',async repo=>{
+ if(typeof repo!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(repo))throw Error('invalid_repository');
+ const account=githubAccount(),state=await account.status();if(!state.profile)throw Error('unauthorized');
+ const confirmed=await dialog.showMessageBox(win,{type:'question',message:tr('Синхронизировать заметки с GitHub?','Synchronize notes with GitHub?'),detail:`${state.profile.login}/${repo}\n`+tr('Все открытые проекты и вкладки будут отправлены в этот приватный репозиторий; удалённые заметки будут загружены. При конфликте сохранятся обе версии. Закрытие вкладки не удаляет заметку из облака.','All open projects and tabs will be uploaded to this private repository; remote notes will be downloaded. Conflicts keep both versions. Closing a tab does not delete its cloud copy.'),buttons:[tr('Отмена','Cancel'),tr('Синхронизировать','Synchronize')],defaultId:0,cancelId:0});if(confirmed.response!==1)return null;
+ const cacheFile=path.join(app.getPath('userData'),'github-sync.json'),key=state.profile.id+'/'+repo;
+ let cache={};if(fs.existsSync(cacheFile)){try{cache=JSON.parse(fs.readFileSync(cacheFile,'utf8'));}catch{throw Error('sync_cache_damaged');}}
+ const initial=portable(model),result=await account.synchronize({repo,base:cache[key]?.base||null,local:initial});
+ const applied=syncCore().merge(initial,portable(model),result.snapshot,Array.from({length:300},()=>crypto.randomUUID()));
+ const previous=model;atomicWrite(path.join(app.getPath('userData'),'session.before-sync.json'),JSON.stringify(previous));
+ const openIDs=new Set(model.tabs.map(t=>t.id.toLowerCase()));
+ const existing=new Map([...model.tabs,...(model.archivedTabs||[])].map(t=>[t.id.toLowerCase(),t])),existingProjects=new Map((model.projects||[]).map(p=>[p.id.toLowerCase(),p]));
+ const nextTabs=applied.snapshot.tabs.map(t=>({...existing.get(t.id),...t,path:existing.get(t.id)?.path||null,savedText:existing.get(t.id)?.savedText||'',encoding:existing.get(t.id)?.encoding||'UTF-8',savedEncoding:existing.get(t.id)?.savedEncoding||'UTF-8',ending:existing.get(t.id)?.ending||'LF',savedEnding:existing.get(t.id)?.savedEnding||'LF',language:existing.get(t.id)?.language||'auto',selection:existing.get(t.id)?.selection||0}));
+ model={...model,tabs:nextTabs.filter(t=>openIDs.has(t.id)||!existing.has(t.id)),archivedTabs:nextTabs.filter(t=>!openIDs.has(t.id)&&existing.has(t.id)),settings:{...model.settings,deletedNoteIds:applied.snapshot.deleted},projects:applied.snapshot.projects.map(p=>({...existingProjects.get(p.id),...p})),selected:model.selected?.toLowerCase()||null,selectedProject:model.selectedProject?.toLowerCase()||null};
+ // Normalize trusted path map to canonical IDs; downloaded tabs never acquire local paths.
+ const priorPaths=new Map(paths);paths=new Map([...paths].map(([id,p])=>[id.toLowerCase(),p]));
+ try{persist();}catch(e){model=previous;paths=priorPaths;throw e;}
+ cache[key]={base:result.snapshot,head:result.head,lastSync:new Date().toISOString()};atomicWrite(cacheFile,JSON.stringify(cache));
+ return {session:model,conflicts:result.conflicts+applied.conflicts,pending:syncCore().stringify(applied.snapshot)!==syncCore().stringify(result.snapshot)};
+});
 handler('github-create-repository',async name=>{
  if(typeof name!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(name))throw Error('invalid_name');
  const state=await githubAccount().status();if(!state.profile)throw Error('unauthorized');
@@ -68,10 +90,12 @@ handler('save',async(tab,as)=>{
 });
 handler('snapshot',value=>{
   if(!Array.isArray(value?.tabs)||value.tabs.length>300||value.tabs.some(t=>typeof t.id!=='string'||typeof t.text!=='string'||Buffer.byteLength(t.text)>MAX_BYTES))throw Error('Сессия слишком большая или повреждена.');
+  if(value.archivedTabs!==undefined&&(!Array.isArray(value.archivedTabs)||value.archivedTabs.length>300||value.archivedTabs.some(t=>typeof t.id!=='string'||typeof t.text!=='string'||Buffer.byteLength(t.text)>MAX_BYTES)))throw Error('Invalid archive');
   const normalized=projectsCore.normalize(value);
-  model={tabs:normalized.tabs.map(t=>{const previous=model.tabs.find(x=>x.id===t.id);return {...t,path:paths.get(t.id)||null,diskHash:previous?.diskHash||null};}),selected:value.selected,settings:value.settings||{},projects:normalized.projects,selectedProject:normalized.selectedProject};
+  model={archivedTabs:value.archivedTabs||[],tabs:normalized.tabs.map(t=>{const previous=model.tabs.find(x=>x.id===t.id);return {...t,path:paths.get(t.id)||null,diskHash:previous?.diskHash||null};}),selected:value.selected,settings:value.settings||{},projects:normalized.projects,selectedProject:normalized.selectedProject};
   persist();refreshMenuLanguage();if(closing){allowClose=true;win.close();}return true;
 });
+handler('confirm-delete',async title=>{const r=await dialog.showMessageBox(win,{type:'warning',message:tr('Удалить заметку?','Delete note?'),detail:String(title).slice(0,200)+'\n'+tr('Заметка удалится локально, а после синхронизации — из GitHub. Внешний файл на диске не удаляется.','The note will be deleted locally and, after synchronization, from GitHub. An external file on disk is kept.'),buttons:[tr('Отмена','Cancel'),tr('Удалить','Delete')],defaultId:0,cancelId:0});return r.response===1;});
 handler('confirm-close',async title=>{const r=await dialog.showMessageBox(win,{type:'question',message:en()?`Save “${String(title).slice(0,200)}”?`:`Сохранить «${String(title).slice(0,200)}»?`,buttons:[tr('Сохранить','Save'),tr('Отмена','Cancel'),tr('Не сохранять',"Don't Save")],defaultId:0,cancelId:1});return r.response;});
 handler('external',kind=>{const urls={telegram:'https://t.me/Ilya_Manik',profile:'https://github.com/starscream001',repo:REPO,releases:REPO+'/releases/latest',roadmap:REPO+'/blob/main/docs/ROADMAP.md'};if(urls[kind])return shell.openExternal(urls[kind]);});
 handler('copy-donation',()=>{clipboard.writeText('+79632433100');return true;});

@@ -9,6 +9,8 @@ import NotepadCore
     let code = NSTextField(string: "")
     let actions = NSStackView()
     private var creating = false
+    private var syncing = false
+    let repository = NSTextField(string: "notepad-notes")
     init(account: GitHubAccount) {
         self.account = account; super.init(frame: .zero)
         orientation = .vertical; alignment = .leading; spacing = 10
@@ -18,6 +20,7 @@ import NotepadCore
         detail.textColor = .secondaryLabelColor
         code.isEditable = false; code.isSelectable = true; code.font = .monospacedSystemFont(ofSize: 20, weight: .semibold); code.alignment = .center
         code.setAccessibilityLabel("GitHub sign-in code"); code.widthAnchor.constraint(equalToConstant: 200).isActive = true; addArrangedSubview(code)
+        repository.stringValue=UserDefaults.standard.string(forKey:"githubSyncRepo") ?? "notepad-notes"; repository.placeholderString = "GitHub repository"; repository.setAccessibilityLabel("GitHub repository name"); repository.font = .systemFont(ofSize:13); repository.widthAnchor.constraint(equalToConstant:362).isActive=true; repository.heightAnchor.constraint(equalToConstant:30).isActive=true; addArrangedSubview(repository)
         actions.orientation = .vertical; actions.alignment = .leading; actions.spacing = 6; addArrangedSubview(actions)
         account.onChange = { [weak self] in self?.render() }; account.load(); render()
     }
@@ -25,18 +28,20 @@ import NotepadCore
     private func text(_ ru: String, _ en: String) -> String { InterfaceLanguage.english ? en : ru }
     private func add(_ ru: String, _ en: String, _ selector: Selector, enabled: Bool = true) {
         let title = text(ru,en), b = NSButton(title: title, target: self, action: selector)
-        b.cell = EditorButtonCell(textCell: title); b.target = self; b.action = selector; b.font = .systemFont(ofSize: 13); b.isEnabled = enabled; b.alphaValue = enabled ? 1 : 0.45
+        b.cell = EditorButtonCell(textCell: title); b.target = self; b.action = selector; b.font = .systemFont(ofSize: 13); b.bezelStyle = .smallSquare; b.controlSize = .small; b.isEnabled = enabled; b.alphaValue = enabled ? 1 : 0.45
         b.heightAnchor.constraint(equalToConstant: 30).isActive = true; actions.addArrangedSubview(b)
     }
     func render() {
         actions.arrangedSubviews.forEach { actions.removeArrangedSubview($0); $0.removeFromSuperview() }
-        detail.stringValue = text("Пока только вход в аккаунт. Синхронизация заметок ещё не подключена.","Account sign-in only. Note synchronization is not connected yet.")
+        detail.stringValue = text("Синхронизация открытых заметок по кнопке. Конфликт сохраняет обе версии. Закрытие вкладки не удаляет облачную копию.","Sync open notes on demand. Conflicts preserve both versions. Closing a tab does not delete its cloud copy.")
         problem.stringValue = account.error.map { message($0) } ?? (account.browserFailed ? text("Откройте GitHub кнопкой ниже.","Open GitHub using the button below.") : "")
         problem.isHidden = problem.stringValue.isEmpty; code.isHidden = account.phase != "waiting"; code.stringValue = account.userCode
+        repository.isHidden = account.profile == nil
         if let profile = account.profile {
+            add("Синхронизировать","Synchronize",#selector(synchronize),enabled:!syncing && !creating)
             status.stringValue = "@" + profile.login + (profile.name.map { " · " + $0 } ?? "")
             add("Разрешить доступ GitHub","Allow GitHub access",#selector(installApp))
-            add("Создать приватный репозиторий","Create private repository",#selector(createRepository),enabled: !creating)
+            add("Создать приватный репозиторий","Create private repository",#selector(createRepository),enabled: !creating && !syncing)
             add("Профиль","Profile",#selector(openProfile)); add("Проверить вход","Check connection",#selector(refresh),enabled:account.phase != "checking"); add("Выйти","Sign out",#selector(signOut))
         } else {
             switch account.phase {
@@ -63,6 +68,20 @@ import NotepadCore
         case .network: return text("Не удалось связаться с GitHub. Проверьте сеть.","Could not reach GitHub. Check your connection.")
         }
     }
+    @objc func synchronize() {
+        guard !syncing, !creating, let app=NSApp.delegate as? AppDelegate, let profile=account.profile else { return }
+        let repo=repository.stringValue.trimmingCharacters(in:.whitespacesAndNewlines)
+        let alert=NSAlert();alert.messageText=text("Синхронизировать заметки с GitHub?","Synchronize notes with GitHub?")
+        alert.informativeText=profile.login+"/"+repo+text("\nВсе открытые проекты и вкладки будут отправлены в этот приватный репозиторий. Удалённые заметки будут загружены. При конфликте сохранятся обе версии.","\nAll open projects and tabs will be uploaded to this private repository. Remote notes will be downloaded. Conflicts preserve both versions.")
+        alert.addButton(withTitle:text("Отмена","Cancel"));alert.addButton(withTitle:text("Синхронизировать","Synchronize"));guard alert.runModal() == .alertSecondButtonReturn else { return }
+        syncing=true;render();problem.stringValue=text("Синхронизация…","Synchronizing…");problem.isHidden=false
+        Task { [weak self] in guard let self else { return };let result:String
+            do { let count=try await account.synchronize(repo:repo,app:app);UserDefaults.standard.set(repo,forKey:"githubSyncRepo");result=text("Синхронизировано. Конфликтных копий: ","Synchronized. Conflict copies: ")+String(count.conflicts)+(count.pending ? text(". Новые правки отправятся при следующей синхронизации.",". New edits will be sent on the next sync.") : "") }
+            catch GitHubIdentityError.invalidResponse { result=text("Неверный снимок или превышен предел: 1 МБ на заметку, 5 МБ всего. Локальные заметки сохранены.","Invalid snapshot or limit exceeded: 1 MB per note, 5 MB total. Local notes are preserved.") }
+            catch { result=text("Синхронизация не завершена. Проверьте приватность репозитория, сеть, вход и права App. Если другое устройство изменило репозиторий — повторите. Локальные заметки сохранены.","Sync did not complete. Check repository privacy, network, sign-in and App permissions. If another device changed the repository, retry. Local notes are preserved.") }
+            syncing=false;render();problem.stringValue=result;problem.isHidden=false
+        }
+    }
     @objc private func createRepository() {
         guard !creating, let profile = account.profile else { return }
         let alert = NSAlert(); alert.messageText = text("Создать приватный репозиторий?","Create a private repository?")
@@ -75,7 +94,7 @@ import NotepadCore
         Task { [weak self] in
             guard let self else { return }
             let message: String
-            do { let repo = try await account.createRepository(name:value); message = text("Создан приватный репозиторий: ","Private repository created: ") + repo + text(". Синхронизация ещё не включена.",". Synchronization is not enabled yet.") }
+            do { let repo = try await account.createRepository(name:value); repository.stringValue=value;UserDefaults.standard.set(value,forKey:"githubSyncRepo");message = text("Создан приватный репозиторий: ","Private repository created: ") + repo + text(". Нажмите «Синхронизировать».",". Click Synchronize.") }
             catch GitHubRepositoryError.nameUnavailable { message = text("Имя занято или недопустимо. Существующий репозиторий не изменён.","Name unavailable or invalid. No existing repository was changed.") }
             catch GitHubRepositoryError.permission { message = text("GitHub не дал разрешение: проверьте установку App и Repository creation.","GitHub denied creation: check the App installation and Repository creation permission.") }
             catch GitHubRepositoryError.invalidName { message = text("Допустимы латинские буквы, цифры, точка, дефис и подчёркивание, до 100 знаков.","Use letters, digits, dot, hyphen and underscore, up to 100 characters.") }

@@ -9,9 +9,10 @@ extension AppDelegate {
     func configureProjects() {
         projectPane.arrangedSubviews.forEach { projectPane.removeArrangedSubview($0); $0.removeFromSuperview() }
         projectPane.orientation = .vertical; projectPane.alignment = .leading; projectPane.spacing = 8
-        projectPane.edgeInsets = NSEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+        projectPane.edgeInsets = NSEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
         if projectPane.constraints.first(where: { $0.firstAttribute == .width }) == nil { projectPane.widthAnchor.constraint(equalToConstant: 210).isActive = true }
         let header = button(InterfaceLanguage.english ? "+ Project" : "+ Проект", #selector(createProject))
+        header.widthAnchor.constraint(equalToConstant:190).isActive=true
         projectPane.addArrangedSubview(header)
         projectRows.orientation = .vertical; projectRows.alignment = .leading; projectRows.spacing = 4
         let scroll = NSScrollView(); scroll.drawsBackground = false; scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.documentView = projectRows
@@ -25,7 +26,7 @@ extension AppDelegate {
         projectPane.isHidden.toggle(); UserDefaults.standard.set(projectPane.isHidden, forKey: "projectsHidden")
     }
     func rebuildProjects() {
-        let signature = String(InterfaceLanguage.english) + String(describing: selectedProjectID) + String(describing: selectedID) + projects.map { $0.id.uuidString + $0.title + String($0.collapsed ?? false) }.joined() + tabs.map { $0.snapshot.id.uuidString + $0.snapshot.title + String($0.dirty) }.joined()
+        let signature = String(InterfaceLanguage.english) + String(describing: selectedProjectID) + String(describing: selectedID) + projects.map { $0.id.uuidString + $0.title + String($0.collapsed ?? false) }.joined() + tabs.map { $0.snapshot.id.uuidString + $0.snapshot.title + String($0.dirty) }.joined() + archivedTabs.map { $0.id.uuidString + $0.title }.joined()
         guard signature != projectSignature || projectRows.arrangedSubviews.isEmpty else { return }; projectSignature = signature
         projectRows.arrangedSubviews.forEach { projectRows.removeArrangedSubview($0); $0.removeFromSuperview() }
         let groups: [(UUID?, String, Bool)] = [(nil, InterfaceLanguage.english ? "Without project" : "Без проекта", false)] + projects.map { ($0.id, $0.title, $0.collapsed ?? false) }
@@ -38,7 +39,7 @@ extension AppDelegate {
             let pick = RenamableButton(title: title, target: self, action: #selector(pickProject(_:)))
             pick.cell = EditorButtonCell(textCell: title); pick.target = self; pick.action = #selector(pickProject(_:)); pick.identifier = disclosure.identifier
             pick.setButtonType(.pushOnPushOff); pick.state = id == selectedProjectID ? .on : .off; pick.alignment = .left; pick.lineBreakMode = .byTruncatingTail
-            pick.font = .systemFont(ofSize: 13, weight: .semibold); pick.heightAnchor.constraint(equalToConstant: 30).isActive = true
+            pick.bezelStyle = .smallSquare; pick.font = .systemFont(ofSize: 12, weight: .medium); pick.heightAnchor.constraint(equalToConstant: 30).isActive = true
             if let id { pick.onRename = { [weak self] in self?.renameProject(id) } }
             row.addArrangedSubview(disclosure); row.addArrangedSubview(pick); projectRows.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
             if !collapsed {
@@ -51,8 +52,14 @@ extension AppDelegate {
                     entry.onRename = { [weak self, weak tab] in if let tab { self?.renameTab(tab) } }
                     projectRows.addArrangedSubview(entry); entry.widthAnchor.constraint(equalTo: projectRows.widthAnchor).isActive = true
                 }
+                for snapshot in archivedTabs where snapshot.projectID == id {
+                    let entry=NSButton(title:snapshot.title,target:self,action:#selector(reopenNote(_:)));entry.isBordered=false;entry.alignment = .left;entry.font = .systemFont(ofSize:12);entry.contentTintColor = .secondaryLabelColor;entry.identifier=NSUserInterfaceItemIdentifier(snapshot.id.uuidString);entry.heightAnchor.constraint(equalToConstant:28).isActive=true;projectRows.addArrangedSubview(entry);entry.widthAnchor.constraint(equalTo:projectRows.widthAnchor).isActive=true
+                }
             }
         }
+    }
+    @objc func reopenNote(_ sender:NSButton) {
+        guard let index=archivedTabs.firstIndex(where:{$0.id.uuidString==sender.identifier?.rawValue}) else { return };let snapshot=archivedTabs.remove(at:index);let tab=EditorTab(snapshot,fontSize:fontSize,wrap:wrap);tab.textView.delegate=self;tabs.append(tab);select(tab);rebuildTabs();schedulePersistence()
     }
     @objc func collapseProject(_ sender: NSButton) {
         guard let index = projects.firstIndex(where: { $0.id.uuidString == sender.identifier?.rawValue }) else { return }

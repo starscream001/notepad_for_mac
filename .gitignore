@@ -13,3 +13,5 @@ desktop/LICENSE
 # Generated from Resources/GitHubOAuth.json
 desktop/github-oauth.json
 github-account.enc
+
+desktop/sync-core.cjs
