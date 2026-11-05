@@ -33,7 +33,7 @@ import NotepadCore
     }
     func render() {
         actions.arrangedSubviews.forEach { actions.removeArrangedSubview($0); $0.removeFromSuperview() }
-        detail.stringValue = text("Синхронизация открытых заметок по кнопке. Конфликт сохраняет обе версии. Закрытие вкладки не удаляет облачную копию.","Sync open notes on demand. Conflicts preserve both versions. Closing a tab does not delete its cloud copy.")
+        detail.stringValue = text("Синхронизация всех локальных заметок по кнопке. Конфликт сохраняет обе версии. Закрытие вкладки не удаляет облачную копию.","Sync all local notes on demand. Conflicts preserve both versions. Closing a tab does not delete its cloud copy.")
         problem.stringValue = account.error.map { message($0) } ?? (account.browserFailed ? text("Откройте GitHub кнопкой ниже.","Open GitHub using the button below.") : "")
         problem.isHidden = problem.stringValue.isEmpty; code.isHidden = account.phase != "waiting"; code.stringValue = account.userCode
         repository.isHidden = account.profile == nil
@@ -72,7 +72,7 @@ import NotepadCore
         guard !syncing, !creating, let app=NSApp.delegate as? AppDelegate, let profile=account.profile else { return }
         let repo=repository.stringValue.trimmingCharacters(in:.whitespacesAndNewlines)
         let alert=NSAlert();alert.messageText=text("Синхронизировать заметки с GitHub?","Synchronize notes with GitHub?")
-        alert.informativeText=profile.login+"/"+repo+text("\nВсе открытые проекты и вкладки будут отправлены в этот приватный репозиторий. Удалённые заметки будут загружены. При конфликте сохранятся обе версии.","\nAll open projects and tabs will be uploaded to this private repository. Remote notes will be downloaded. Conflicts preserve both versions.")
+        alert.informativeText=profile.login+"/"+repo+text("\nВсе локальные проекты и заметки, включая закрытые вкладки, будут отправлены в этот приватный репозиторий. Заметки из репозитория будут загружены. При конфликте сохранятся обе версии.","\nAll local projects and notes, including closed tabs, will be uploaded to this private repository. Remote notes will be downloaded. Conflicts preserve both versions.")
         alert.addButton(withTitle:text("Отмена","Cancel"));alert.addButton(withTitle:text("Синхронизировать","Synchronize"));guard alert.runModal() == .alertSecondButtonReturn else { return }
         syncing=true;render();problem.stringValue=text("Синхронизация…","Synchronizing…");problem.isHidden=false
         Task { [weak self] in guard let self else { return };let result:String
