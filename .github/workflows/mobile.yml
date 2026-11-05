@@ -6,8 +6,27 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: notepad-mobile-beta
+  cancel-in-progress: true
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Cancel older mobile builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$GH_REPO/actions/workflows/mobile.yml/runs?per_page=100" --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID and .head_branch == \"main\" and (.status == \"queued\" or .status == \"in_progress\")) | .id" | while read -r run; do
+            gh run cancel "$run" || true
+          done
+
   android:
+    needs: prepare
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -49,6 +68,7 @@ jobs:
           path: mobile/release/*
           retention-days: 7
   ios:
+    needs: prepare
     runs-on: macos-15
     defaults:
       run:
@@ -108,6 +128,8 @@ jobs:
           set -euo pipefail
           version=$(node -p "require('./mobile/package.json').version")
           tag="mobile-v$version"
+          head=$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)
+          if [ "$head" != "$GITHUB_SHA" ]; then echo "Newer source exists; keeping this build in Actions only."; exit 0; fi
           state=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null || true)
           if [ "$state" = false ]; then exit 0; fi
           if [ "$state" != true ]; then
