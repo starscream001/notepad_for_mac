@@ -1,8 +1,12 @@
-const {app,BrowserWindow,Menu,dialog,ipcMain,shell,clipboard,session}=require('electron');
+const {app,BrowserWindow,Menu,dialog,ipcMain,shell,clipboard,session,safeStorage}=require('electron');
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {decode,encode,fingerprint,atomicWrite,newer,assetFor,MAX_BYTES}=require('./core.cjs');
 const updates=require('./updates.cjs');
 const projectsCore=require('./projects.cjs');
+const {GitHubAuth}=require('./github-auth.cjs');
+const {credentialStore}=require('./github-storage.cjs');
+let githubAuth;
+const githubAccount=()=>{if(!githubAuth){const config=require('./github-oauth.json');githubAuth=new GitHubAuth({clientID:process.env.NOTEPAD_GITHUB_CLIENT_ID||config.clientID,storage:credentialStore({safeStorage,directory:app.getPath('userData')}),openBrowser:url=>shell.openExternal(url),emit:state=>{if(win&&!win.isDestroyed())win.webContents.send('github-account-state',state);}});}return githubAuth;};
 let updateController=null,preparedUpdate=null,installingUpdate=false;
 const updateState=value=>{if(win&&!win.isDestroyed())win.webContents.send('update-state',value);};
 const en=()=>model.settings?.locale==='en';
@@ -33,6 +37,21 @@ function load(){
 function command(name){win?.webContents.send('command',name);}
 function trusted(event){if(event.sender!==win?.webContents||event.senderFrame!==win.webContents.mainFrame)throw Error('Недопустимый отправитель');}
 function handler(name,fn){ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(error){const messages={'Бинарный файл не поддерживается.':'Binary files are not supported.','Поддерживаются файлы до 20 МБ.':'Files up to 20 MB are supported.','Файл уже открыт в другой вкладке.':'This file is already open in another tab.','Неверная кодировка.':'Invalid encoding.'};return {ok:false,error:en()?(messages[error.message]||error.message):error.message};}});}
+handler('github-create-repository',async name=>{
+ if(typeof name!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(name))throw Error('invalid_name');
+ const state=await githubAccount().status();if(!state.profile)throw Error('unauthorized');
+ const result=await dialog.showMessageBox(win,{type:'question',title:tr('Приватный репозиторий','Private repository'),message:tr('Создать приватный репозиторий?','Create a private repository?'),detail:`${state.profile.login}/${name}\n`+tr('Сейчас создаётся только пустое хранилище с README. Заметки не отправляются.','Only an empty repository with a README is created. Notes are not uploaded.'),buttons:[tr('Отмена','Cancel'),tr('Создать','Create')],defaultId:0,cancelId:0});
+ if(result.response!==1)return null;return githubAccount().createRepository(name,true);
+});
+handler('github-install-app',()=>shell.openExternal('https://github.com/apps/notepad-desktop/installations/new'));
+handler('github-status',()=>githubAccount().status());
+handler('github-start',()=>githubAccount().start());
+handler('github-cancel',()=>githubAccount().cancel());
+handler('github-disconnect',()=>githubAccount().disconnect());
+handler('github-refresh',()=>githubAccount().refresh());
+handler('github-browser',()=>{if(githubAccount().state.phase==='waiting')return shell.openExternal('https://github.com/login/device');});
+handler('github-copy-code',()=>{const state=githubAccount().state;if(state.phase==='waiting')clipboard.writeText(state.userCode);});
+handler('github-profile',()=>{const state=githubAccount().state;if(state.profile)return shell.openExternal(state.profile.url);});
 handler('load',()=>({session:model,version:app.getVersion(),platform:process.platform}));
 handler('open',async()=>{const result=await dialog.showOpenDialog(win,{properties:['openFile','multiSelections']});if(result.canceled)return [];const newPaths=[...new Set(result.filePaths.map(p=>fs.realpathSync(p)))].filter(p=>!model.tabs.some(t=>t.path===p));if(model.tabs.length+newPaths.length>300)throw Error(tr('Можно открыть не более 300 вкладок.','You can open up to 300 tabs.'));return result.filePaths.map(readFile);});
 handler('save',async(tab,as)=>{
@@ -95,7 +114,7 @@ handler('install-update',async()=>{
     return true;
   }finally{installingUpdate=false;}
 });
-app.on('before-quit',()=>updateController?.abort());
+app.on('before-quit',()=>{updateController?.abort();githubAuth?.cancel();});
 if(!app.requestSingleInstanceLock())app.quit();
 else {
  app.on('second-instance',(_event,argv)=>{if(win){win.show();win.focus();for(const arg of argv.slice(1)){if(!arg.startsWith('-')&&fs.existsSync(arg)&&fs.statSync(arg).isFile()){try{readFile(arg);command('reload');}catch(error){dialog.showErrorBox('Не удалось открыть',error.message);}}}}});

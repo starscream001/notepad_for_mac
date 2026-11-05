@@ -28,6 +28,7 @@ cp Resources/Vendor/sql-formatter-LICENSE.txt "$APP/Contents/Resources/sql-forma
 cp Resources/Vendor/marked.js "$APP/Contents/Resources/marked.js"
 cp Resources/Vendor/marked-LICENSE.txt "$APP/Contents/Resources/marked-LICENSE.txt"
 cp Resources/Palettes.json "$APP/Contents/Resources/Palettes.json"
+cp Resources/GitHubOAuth.json "$APP/Contents/Resources/GitHubOAuth.json"
 cp Resources/Donation.json "$APP/Contents/Resources/Donation.json"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp LICENSE "$APP/Contents/Resources/LICENSE.txt"

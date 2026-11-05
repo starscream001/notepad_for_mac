@@ -94,3 +94,25 @@ Desktop: `projects.cjs` нормализует старые сессии и memb
 Следующее: сначала PLATFORM_TESTING на Windows/Linux. Затем переносимый формат/экспорт и sync conflict core, первый GitHub адаптер, отдельный мобильный прототип. `ROADMAP.md` и `SYNC-0.9.md` — актуальный план. Не встраивать secret OAuth в приложение, не заводить сервер разработчика, не активировать синхронизацию без пользователя. Остальные Git/облака подключать постепенно. MIT в 0.8 сохранён, лицензирование будущих модулей ещё не выбрано. Центральные WinGet/Homebrew/Flathub пока НЕ содержат приложение; `packaging/README.md` содержит реальные команды GitHub CLI и требования подачи.
 
 При Save/Save As вкладка проекта сохраняет базовый alias; иначе экспорт Project.Note.txt повторно добавлял бы Project в UI. Для документов без проекта имя обновляется по выбранному имени файла, как раньше.
+
+## Подготовка GitHub sign-in — текущая незавершённая публикация 0.9
+
+По последнему решению владельца сначала только нормальный вход через браузер, без токена вручную и без синхронизации. Владелец выбрал «подготовь код и инструкцию», OAuth App ещё НЕ зарегистрирована/Client ID не получен. Код и инструкции локально; VERSION остаётся 0.8.0, опубликованные assets не менять. Не объявлять реальный вход протестированным. Следующий шаг: владелец по `GITHUB_SIGN_IN.md` регистрирует OAuth App + Enable Device Flow, передаёт публичный Client ID; заполнить Resources/GitHubOAuth.json, пройти E2E и тогда выпустить 0.9.
+
+Device Flow выбран, потому что GitHub требует client secret для обычного code exchange, а здесь нет сервера и нельзя встраивать secret в публичный native client. Scope только read:user, никаких repo. Resources/GitHubOAuth.json общий, env NOTEPAD_GITHUB_CLIENT_ID для разработки. scripts/build.sh копирует ресурс; desktop/build.mjs создаёт ignored github-oauth.json, обязательно включён в builder.files вместе с github-auth.cjs/github-storage.cjs.
+
+Native: NotepadCore/GitHubIdentity.swift (строгие валидаторы), NotepadMac/GitHubAccount.swift (@MainActor, URLSession no redirects, Keychain service bundleID.github) и GitHubSettingsView.swift; showPreferences @MainActor. Task generation защищает от позднего ответа после cancel/logout; Keychain write синхронна на actor. Expiring tokens учитываются, refresh token пока не используется: повторный вход после expiry. Profile check вручную; кеш профиля офлайн.
+
+Desktop: github-auth.cjs (инъекции для тестов, serial credential writes и generation/AbortController), github-storage.cjs (safeStorage ciphertext, Linux known backend only). main/preload дают только status/start/cancel/disconnect/refresh/open fixed URLs/copy-code; токен/device_code не передаются renderer. src/github-account.js — локализованный UI. Logout очищает локальное хранилище, не отзывает grant: Settings/Applications на GitHub вручную.
+
+Проверено: 39 Node-тестов, CoreChecks, production native и Electron Mac package; реальные settings UI до конфигурации и браузерный UI fixture для waiting/connected/cancel/logout/RU/EN. Реальная авторизация, защищённое хранилище ОС после согласия пользователя, Windows/Linux QA — впереди. QA bundles .authqa, каталоги /private/tmp/notepad-auth-qa. Fixture work/auth-web только тестовый, не часть приложения; фиктивный TEST-CODE, никаких реальных токенов. Тестовые mock ответы не выдавать за вход в аккаунт владельца.
+
+## Новая задача: полный GitHub sync по шагам
+
+Владелец разрешил реализовать вход → подтверждённое создание private repo → sync и просит коммит/точку продолжения после каждого шага. Актуальный чек-лист docs/SYNC_PROGRESS.md. Пока сделан шаг 1: JS portable codec + тесты; ещё не подключён к UI. Следующий шаг 2: GitHub App вместо старого OAuth App, регистрационная инструкция и оба auth клиента. Client ID/slug отсутствуют. Не выпускать 0.9 до E2E. Предыдущий OAuth-only план больше не является конечным объёмом задачи.
+
+Checkpoint 2: JS/Swift auth переведён на GitHub App: device request без scope, token reply scope пустой, credentials.provider=github-app (старый OAuth кеш не подхватывать). GITHUB_SIGN_IN.md заменён на App-регистрацию. Client ID/slug ещё пусты. Далее шаг 3 в SYNC_PROGRESS: private repo confirmation + API + проверка установки. Проверки: 42 Node tests, CoreChecks и native build.
+
+Client ID Iv23liPeQma6kkZ1Ndog подключён. Для владельца собрана VERSION=0.9.0-dev ./scripts/build.sh (Mac arm64) с настоящим Device Flow, выходной ZIP в outputs. Это локальный тест входа, не опубликованный stable и не готовая синхронизация. CoreChecks и 42 Node-теста проходят. Ждать результат ручного входа владельца; далее шаг 3 SYNC_PROGRESS.
+
+0.9.0: владелец подтвердил настоящий GitHub вход. Добавлено private repo creation с подтверждением native alert / main-process Electron dialog; токены остаются вне renderer. Новый github-repository.cjs включён в builder. Mac toolbar right icons, detachesHiddenViews=false и высота42; Sidebar отделена. Sync ещё не включён. Реальное создание repo/Windows/Linux QA пока не подтверждены.

@@ -58,6 +58,7 @@ final class EditorBar: NSStackView {
         NSGraphicsContext.saveGraphicsState(); defer { NSGraphicsContext.restoreGraphicsState() }
         NSBezierPath(rect: bounds).addClip()
         EditorPalette.chrome.setFill(); bounds.fill()
+        NSColor.separatorColor.setFill(); NSRect(x:0,y:0,width:bounds.width,height:1).fill()
     }
 }
 
@@ -106,5 +107,12 @@ final class RenamableButton: NSButton {
     var onRename: (() -> Void)?
     override func mouseDown(with event: NSEvent) {
         if event.clickCount == 2 { onRename?() } else { super.mouseDown(with: event) }
+    }
+}
+
+final class EditorSidebar: NSStackView {
+    override func draw(_ dirtyRect: NSRect) {
+        EditorPalette.button.withAlphaComponent(0.45).setFill(); bounds.fill()
+        NSColor.separatorColor.setFill(); NSRect(x:bounds.maxX-1,y:0,width:1,height:bounds.height).fill()
     }
 }

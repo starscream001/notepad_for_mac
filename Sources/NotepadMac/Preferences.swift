@@ -1,9 +1,9 @@
 import AppKit
 
 extension AppDelegate {
-    @objc func showPreferences() {
+    @MainActor @objc func showPreferences() {
         if let preferencesPanel { preferencesPanel.makeKeyAndOrderFront(nil); return }
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 410, height: 216), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 410, height: 560), styleMask: [.titled, .closable], backing: .buffered, defer: false)
         panel.title = L("Настройки…"); panel.isReleasedWhenClosed = false
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
@@ -19,7 +19,10 @@ extension AppDelegate {
         }
         let hint = NSTextField(wrappingLabelWithString: L("Форматирование запускается только по команде. Авто выбирает диалект по расширению .psql / .pgsql / .mysql; для .sql используется обычный SQL."))
         hint.font = .systemFont(ofSize: 12); hint.textColor = .secondaryLabelColor; hint.widthAnchor.constraint(equalToConstant: 362).isActive = true
-        stack.addArrangedSubview(hint); panel.contentView = stack; preferencesPanel = panel; panel.center(); panel.makeKeyAndOrderFront(nil)
+        stack.addArrangedSubview(hint)
+        let divider = NSBox(); divider.boxType = .separator; divider.widthAnchor.constraint(equalToConstant: 362).isActive = true; stack.addArrangedSubview(divider)
+        stack.addArrangedSubview(GitHubSettingsView(account: githubAccount))
+        panel.contentView = stack; preferencesPanel = panel; panel.center(); panel.makeKeyAndOrderFront(nil)
     }
     @objc func preferenceLanguageChanged(_ sender: NSPopUpButton) {
         preferencesPanel?.close(); preferencesPanel = nil

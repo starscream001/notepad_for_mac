@@ -13,3 +13,5 @@ await build({...formatOptions,entryPoints:['src/format-worker.js'],outfile:'ui/f
 await writeFile('../Resources/Vendor/sql-formatter-LICENSE.txt','sql-formatter 15.9.0\n\n'+await readFile('node_modules/sql-formatter/LICENSE','utf8')+'\n\nnearley 2.20.1 (bundled parser runtime)\n\n'+await readFile('node_modules/nearley/LICENSE.txt','utf8'));
 
 await copyFile('../Resources/Vendor/sql-formatter-LICENSE.txt','ui/sql-formatter-LICENSE.txt');
+
+await copyFile('../Resources/GitHubOAuth.json','github-oauth.json');

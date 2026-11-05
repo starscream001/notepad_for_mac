@@ -4,6 +4,7 @@ import NotepadCore
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextViewDelegate {
     var window: NSWindow!
     lazy var updater = AppUpdater(app: self)
+    @MainActor lazy var githubAccount = GitHubAccount()
     var formatting = false
     var preferencesPanel: NSPanel?
     var tabs: [EditorTab] = []
@@ -11,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
     var projects: [SessionProject] = []
     var selectedProjectID: UUID?
     var visibleTabs: [EditorTab] { tabs.filter { $0.snapshot.projectID == selectedProjectID } }
-    let projectPane = NSStackView()
+    let projectPane = EditorSidebar()
     let projectRows = EditorListStack()
     var looseSelected: UUID?
     var projectSignature = ""
@@ -149,6 +150,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         button.setAccessibilityLabel(title.isEmpty ? (symbol == "gearshape" ? L("Настройки…") : (symbol == "sidebar.left" ? (InterfaceLanguage.english ? "Projects" : "Проекты") : L("Новая вкладка"))) : title); button.toolTip = title.isEmpty ? (symbol == "gearshape" ? L("Настройки…") : (symbol == "sidebar.left" ? (InterfaceLanguage.english ? "Projects" : "Проекты") : L("Новая вкладка"))) : title
         return button
     }
+    func iconButton(_ title: String, _ action: Selector, symbol: String) -> NSButton {
+        let control = button("", action, symbol:symbol); control.setAccessibilityLabel(title); control.toolTip = title; return control
+    }
     func row(_ views: [NSView]) -> NSStackView {
         let stack = EditorBar(views: views); stack.orientation = .horizontal; stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
@@ -164,13 +168,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         window.backgroundColor = EditorPalette.chrome
         window.title = "Notepad Mac"; window.minSize = NSSize(width: 860, height: 440)
         window.delegate = self; window.center(); window.setFrameAutosaveName("EditorWindow")
-        let root = NSStackView(); root.wantsLayer = true; root.orientation = .vertical; root.spacing = 0; root.alignment = .leading
+        let root = NSStackView(); root.wantsLayer = true; root.orientation = .vertical; root.spacing = 0; root.alignment = .leading; root.distribution = .fill
         window.contentView = root
         pathLabel.lineBreakMode = .byTruncatingMiddle; pathLabel.textColor = .secondaryLabelColor
         pathLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        previewButton = button(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
+        previewButton = iconButton(L("Просмотр"), #selector(togglePreview(_:)), symbol: "rectangle.split.2x1")
         previewButton.setButtonType(.pushOnPushOff)
-        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), button(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), button(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, button(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), button(L("О проекте"), #selector(about), symbol: "info.circle")])
+        let toolbar = row([button("", #selector(toggleProjects), symbol: "sidebar.left"), button(L("Новый"), #selector(newDocument(_:)), symbol: "plus"), button(L("Открыть"), #selector(openDocument(_:)), symbol: "folder"), button(L("Сохранить"), #selector(saveDocument(_:)), symbol: "square.and.arrow.down"), NSView(), iconButton(L("Формат"), #selector(formatDocument(_:)), symbol: "text.alignleft"), iconButton(L("Вкладки"), #selector(showTabList), symbol: "square.stack"), previewButton, iconButton(L("Поиск"), #selector(showFind(_:)), symbol: "magnifyingglass"), iconButton(L("О проекте"), #selector(about), symbol: "info.circle")])
+        toolbar.detachesHiddenViews = false
+        toolbar.heightAnchor.constraint(equalToConstant: 42).isActive = true
         root.addArrangedSubview(toolbar)
         tabStack.orientation = .horizontal; tabStack.spacing = 4
         tabStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
@@ -217,6 +223,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTe
         let workspace = NSStackView(views: [projectPane, editorSplit]); workspace.orientation = .horizontal; workspace.spacing = 0; workspace.alignment = .top; workspace.distribution = .fill
         editorSplit.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .horizontal)
         projectPane.heightAnchor.constraint(equalTo: editorSplit.heightAnchor).isActive = true
+        workspace.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .vertical)
         root.addArrangedSubview(workspace)
         let pathRow = row([pathLabel]); root.addArrangedSubview(pathRow)
         pathLabel.font = .systemFont(ofSize: 11)

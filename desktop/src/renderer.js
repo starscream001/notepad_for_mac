@@ -1,3 +1,4 @@
+import {mountGitHubAccount} from './github-account.js';
 import {previewDocument} from './preview.js';
 import projectCore from '../projects.cjs';
 import palettes from '../../Resources/Palettes.json';
@@ -36,6 +37,8 @@ function notice(message){$('notice').textContent=tr(message);$('notice').hidden=
 window.addEventListener('error',e=>notice('Ошибка интерфейса: '+e.message));
 window.addEventListener('unhandledrejection',e=>notice('Ошибка: '+(e.reason?.message||e.reason)));
 async function call(name,...args){const result=await api[name](...args);if(!result.ok)throw Error(result.error);return result.value;}
+const githubSettings=mountGitHubAccount({api,call,english:()=>locale==='en'});
+function openSettings(){$('settings-dialog').showModal();githubSettings.load();}
 function capture(){const t=current();if(t&&view){t.text=view.state.doc.toString();t.selection=view.state.selection.main.head;states.set(t.id,view.state);}}
 function snapshot(){capture();return {tabs,selected,settings,projects,selectedProject};}
 async function flush(){clearTimeout(timer);try{await call('snapshot',snapshot());return true;}catch(e){notice('Не удалось сохранить сессию: '+e.message);return false;}}
@@ -131,7 +134,7 @@ async function formatDocument(){
  }catch{finish();notice(locale==='en'?'Could not start formatting.':'Не удалось запустить форматирование.');}
 }
 
-const actions={format:formatDocument,settings:()=>$('settings-dialog').showModal(),new:newTab,open,save:()=>save(false),'save-as':()=>save(true),close:()=>current()&&closeTab(selected),find:()=>view&&openSearchPanel(view),preview:togglePreview,about:()=>{$('settings-dialog').close();$('about-dialog').showModal();},update:()=>checkUpdate(true),flush,reload:async()=>{const data=await call('load');capture();for(const t of data.session.tabs){if(!tabs.some(x=>x.id===t.id))tabs.push(t);}select(data.session.selected||selected);}};
+const actions={format:formatDocument,settings:openSettings,new:newTab,open,save:()=>save(false),'save-as':()=>save(true),close:()=>current()&&closeTab(selected),find:()=>view&&openSearchPanel(view),preview:togglePreview,about:()=>{$('settings-dialog').close();$('about-dialog').showModal();},update:()=>checkUpdate(true),flush,reload:async()=>{const data=await call('load');capture();for(const t of data.session.tabs){if(!tabs.some(x=>x.id===t.id))tabs.push(t);}select(data.session.selected||selected);}};
 for(const id of ['new','open','save','find','preview','about','format','settings'])$(id).onclick=actions[id];
 api.onCommand(command=>{if(!updateInstalling||command==='flush')actions[command]?.();});
 function listTabs(){
@@ -159,7 +162,7 @@ $('copy').onclick=()=>call('copyDonation').then(()=>notice('Номер скоп�
 $('check-update').onclick=()=>checkUpdate(true);
 $('auto-update').onchange=()=>{settings.autoUpdates=$('auto-update').checked;schedule();};
 $('update-interval').onchange=()=>{settings.updateInterval=Number($('update-interval').value);schedule();};
-$('ui-language').onchange=()=>{locale=$('ui-language').value;settings.locale=locale;if(view){const wasOpen=searchPanelOpen(view.state);if(wasOpen)closeSearchPanel(view);view.dispatch({effects:phraseSlot.reconfigure(searchPhrases())});if(wasOpen)openSearchPanel(view);}localizeDOM(locale);renderSchemes();renderTabs();status();schedule();};
+$('ui-language').onchange=()=>{locale=$('ui-language').value;settings.locale=locale;if(view){const wasOpen=searchPanelOpen(view.state);if(wasOpen)closeSearchPanel(view);view.dispatch({effects:phraseSlot.reconfigure(searchPhrases())});if(wasOpen)openSearchPanel(view);}localizeDOM(locale);githubSettings.render();renderSchemes();renderTabs();status();schedule();};
 $('theme').onchange=()=>{settings.theme=$('theme').value;applyTheme();schedule();};
 for(const key of ['language','encoding','ending'])$(key).onchange=()=>{const t=current();if(!t)return;t[key]=$(key).value;if(key==='language')view.dispatch({effects:langSlot.reconfigure(languageExtension(t))});renderTabs();status();refreshPreview();schedule();};
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',applyTheme);
