@@ -28,3 +28,8 @@
 ## GitHub — следующий мобильный этап
 
 Переносить существующий sync core/протокол, а не Electron main.cjs. Device Flow — в системном браузере; токен только в iOS Keychain/Android Keystore, через отдельный native plugin, не localStorage/Filesystem JSON. Общий Client ID публичный, secret не нужен. Нужны отмена и generation guards, совместимые deletedProjects/tombstones, base snapshot и non-force branch update, UI подтверждения передачи заметок и два устройства E2E. До подключения этого слоя в мобильном клиенте **нет входа или синхронизации**, не показывать фиктивно работающую кнопку.
+
+
+## Подтверждённый выпуск
+
+[mobile-v0.10.0-beta.1](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1) опубликован. Actions42105213434: Android APK и iOS Simulator compile SUCCESS,6 mobile tests pass,4 файла с SHA256 загружены. Десктопный Latest — v0.9.4. Следующий обязательный шаг — физическое устройство; не выдавать успешную компиляцию за эту проверку.
