@@ -7,6 +7,7 @@
 - Android adjustResize и расчёт доступной высоты под клавиатурой на планшете.
 - Реальный GitHub Device Flow через системный браузер, Android Keystore/AES-GCM / iOS Keychain, подтверждённое создание приватного репозитория и ручной совместимый sync без force push.
 - Native bridge logging выключен; токены не входят в сессии и экспорт заметок.
+- [Опубликованный релиз и файлы](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2), [результаты CI](https://github.com/starscream001/notepad_for_mac/actions/runs/42119493822) и [установка на свой iPhone](docs/IOS_INSTALL.md).
 
 ## Mobile 0.10.0-beta.1 · отдельный prerelease
 

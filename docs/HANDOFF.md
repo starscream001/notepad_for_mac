@@ -9,7 +9,7 @@
 | macOS | Swift/AppKit; universal arm64+x86_64, macOS 13+ | Нативный пакет, обновление с 0.3/0.4/0.5, геометрия на минимальном окне |
 | Windows x64 | Electron + CodeMirror; NSIS EXE | Установка/удаление на Windows 10/11, Unicode-пути, диалоги, повторный запуск, DPI |
 | Linux x64 | Тот же клиент; AppImage + deb | Ubuntu 24.04, Wayland/X11, AppImage/FUSE, права файла, окна и горячие клавиши |
-| iOS/iPadOS/Android | mobile/, Capacitor8 + CodeMirror, local-first beta0.10.0-beta.1 | APK на физическом Android; iOS Simulator/Xcode. Подпись/TestFlight и mobile GitHub ещё впереди |
+| iOS/iPadOS/Android | mobile/, Capacitor8 + CodeMirror, beta0.10.0-beta.2, GitHub sign-in/manual sync | Android14 emulator прошёл; физические Android/iPhone, OAuth+sync E2E, постоянная подпись/TestFlight |
 
 GitHub Actions подтверждает компиляцию/упаковку на каждой ОС. Живое пользовательское тестирование Windows/Linux остаётся отдельной задачей после переключения на соответствующую машину. См. [чек-лист](PLATFORM_TESTING.md).
 
@@ -170,3 +170,7 @@ Beta.2 CI42114917802: iOS compile SUCCESS, Android compile SUCCESS. Our NotepadS
 Android 14: тест приложения прошёл, общий Gradle task дополнительно запускал тестовые APK служебных Capacitor-модулей с конфликтующими Kotlin-зависимостями. Workflow запускает `:app:connectedDebugAndroidTest`: все instrumentation-тесты приложения, включая настоящий IME и защищённое хранилище. Финальная публикация ожидает повторного CI.
 
 Beta.2 CI42118413232: iOS/Android compilation and both Android14 instrumentation tests PASSED. Job only failed pulling screenshot after AGP auto-uninstalled app/data. Workflow keeps APK installed until screenshot pull using official AGP leaveApksInstalledAfterRun property. Final retry pending.
+
+## Финал Mobile beta.2 — проверено 10 ноября 2026
+
+Публичный prerelease mobile-v0.10.0-beta.2, source f96ad0f12bfb2b4a739310cff74e571ffc3a6896. CI42119493822 все jobs SUCCESS после повторного запуска только iOS (первый отменён после ожидания runner). Android APK8164368, iOS Simulator ZIP6447928, SHA256 в docs/MOBILE.md. Android14: оба instrumentation-теста прошли, скриншот клавиатуры выгружен. Скачанные публичные assets проверены по manifest/API digest. README содержит прямые ссылки и инструкции; docs/IOS_INSTALL.md — бесплатная установка через Personal Team,7 дней, отличие Simulator ZIP от IPA. Подпись другого приложения не переносится; свой действующий signing identity можно использовать с подходящим App ID/profile. Desktop VERSION0.9.4 не менялся. Реальный mobile OAuth/sync и физические телефоны не тестировались агентом. Следующее: владелец проверяет APK/свой GitHub; затем постоянная Android-подпись и iPhone через Xcode. Опубликованные assets не перезаписывать.

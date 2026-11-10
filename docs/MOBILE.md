@@ -35,8 +35,14 @@ Android: Keystore AES-GCM + encrypted SharedPreferences. iOS: Keychain ThisDevic
 
 ## Подтверждённый выпуск
 
-[mobile-v0.10.0-beta.1](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.1) опубликован. Actions42105213434: Android APK и iOS Simulator compile SUCCESS,6 mobile tests pass,4 файла с SHA256 загружены. Десктопный Latest — v0.9.4. Следующий обязательный шаг — физическое устройство; не выдавать успешную компиляцию за эту проверку.
+[mobile-v0.10.0-beta.2](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2) опубликован как prerelease. [CI42119493822](https://github.com/starscream001/notepad_for_mac/actions/runs/42119493822), повтор iOS job после отмены очередью: все jobs SUCCESS. Source `f96ad0f12bfb2b4a739310cff74e571ffc3a6896`. 16 unit-тестов и оба Android14 instrumentation-теста прошли, включая настоящий IME и синтетический credential roundtrip. Скриншот подтверждает видимость нижней панели над клавиатурой. Это эмулятор, не проверка физического телефона.
 
+| Файл | Размер, байт | SHA256 |
+| --- | ---: | --- |
+| Android debug APK | 8164368 | `4025b93846ebfa6beb14e4e849eb5207b5bfc2d7ac03de68af059e11496fac1c` |
+| iOS Simulator ZIP | 6447928 | `b46a4a42b61c644fcc789078eff09ab95457eb27c52351c82b344f3a34ddba6a` |
+
+Четыре assets (APK/ZIP и SHA256 к каждому) публичны. Desktop Latest остаётся v0.9.4. Настоящий OAuth/двухустройственный sync и физические устройства проверяет владелец после установки. [iPhone без платной подписки](IOS_INSTALL.md).
 
 ## Beta.2
 

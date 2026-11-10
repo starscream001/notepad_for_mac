@@ -89,13 +89,19 @@
 | Платформа | Тестовая сборка | Статус |
 | --- | --- | --- |
 | **Android 7+ · телефоны и планшеты** | [Скачать APK](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.2/Notepad-Mobile-0.10.0-beta.2-Android-debug.apk) | Локальные заметки, проекты, просмотр Markdown/HTML; debug beta |
-| **iPhone / iPad · iOS 16+** | [Исходники и инструкция](mobile/README.md) · [Simulator ZIP](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2) | Simulator ZIP только для Xcode; TestFlight пока не настроен |
+| **iPhone / iPad · iOS 16+** | [Исходники и инструкция](mobile/README.md) · [Simulator ZIP](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.2/Notepad-Mobile-0.10.0-beta.2-iOS-Simulator.zip) | Simulator ZIP только для Xcode; TestFlight пока не настроен |
 
 Мобильная beta работает локально; **Меню → GitHub** подключает вход через браузер, создание приватного репозитория и ручную синхронизацию с desktop. «Авто» открывает список форматов, «Просмотр» предлагает Markdown, HTML или текст/код. Перед переустановкой beta экспортируйте заметки: тестовая подпись APK между сборками может измениться. [Установка и ограничения](mobile/README.md).
 
+**Проверки beta.2:** 16 unit-тестов, нативные сборки Android/iOS Simulator и два instrumentation-теста на планшетном эмуляторе Android 14 прошли. Проверены «Авто», предпросмотр, команды меню, защищённое хранилище и видимость нижней панели с открытой клавиатурой. [Успешный CI и отчёт](https://github.com/starscream001/notepad_for_mac/actions/runs/42119493822). Физические телефоны и настоящий обмен через аккаунт пользователя требуют отдельной проверки.
+
+**Установка на свой iPhone без платной подписки:** Mac + Xcode + бесплатный Apple Account → Personal Team → подключить iPhone → запустить проект. Подпись действует 7 дней; затем нужно повторно собрать и установить. Готового IPA для телефона и TestFlight пока нет. [Пошаговая установка и подпись](docs/IOS_INSTALL.md).
+
+**Контрольные суммы и файлы:** [описание мобильного релиза](https://github.com/starscream001/notepad_for_mac/releases/tag/mobile-v0.10.0-beta.2) · [Android SHA256](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.2/Notepad-Mobile-0.10.0-beta.2-Android-debug.apk.sha256) · [iOS Simulator SHA256](https://github.com/starscream001/notepad_for_mac/releases/download/mobile-v0.10.0-beta.2/Notepad-Mobile-0.10.0-beta.2-iOS-Simulator.zip.sha256).
+
 [Установка командой через GitHub CLI и план WinGet/Homebrew/Flathub](packaging/README.md). В центральных каталогах пакетов приложение пока не зарегистрировано.
 
-Готовые пакеты не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
+Готовые пакеты macOS/Windows/Linux и Android APK не требуют Node.js, Xcode или компиляции. Windows/Linux — первая версия поддержки; автоматическая упаковка проверяется в CI, ручная проверка на машинах владельца ещё впереди. [Инструкции Windows/Linux](docs/PLATFORM_TESTING.md).
 
 ### Установка на Mac
 
